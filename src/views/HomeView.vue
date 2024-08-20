@@ -41,6 +41,7 @@ import { isAuthenticated } from '@/auth';
   color: #fff; /* White text color for better contrast against the background */
   text-align: center;
   padding-top: 60px; /* Add padding to account for NavBar height */
+  margin-bottom: 20px;
 }
 
 /* Overlay for text and button to enhance readability */
@@ -68,12 +69,14 @@ import { isAuthenticated } from '@/auth';
 .img h2 {
   font-size: 2.5rem;
   margin-bottom: 1rem;
+  font-family:'Times New Roman', Times, serif
 }
 
 .img p {
-  font-size: 1rem;
+  font-size: 1.5rem;
   margin: 1rem 0;
   line-height: 1.6; /* Increase line height for better readability */
+  font-family: 'Times New Roman', Times, serif;
 }
 
 .btn {
