@@ -15,7 +15,7 @@ import { isAuthenticated } from '@/auth';
     <!-- <img src="../assets/images/Blog.jpg" alt="Blog"> -->
     <p>Lorem, ipsum dolor sit amet consectetur adipisicing elit. Libero nemo aut dignissimos consequatur asperiores exercitationem, quibusdam deleniti et, nobis facere ut veritatis, 
       architecto quaerat laboriosam vel provident reprehenderit totam perspiciatis?</p>
-      <router-link to="/PostFind" v-if="isAuthenticated">
+      <router-link to="/PostList" v-if="isAuthenticated">
         <button class="btn">Continue Reading</button>
       </router-link>
       <router-link to="/LoginView" v-if="!isAuthenticated">
