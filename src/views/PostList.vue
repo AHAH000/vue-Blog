@@ -33,7 +33,7 @@ const listArticles = async () => {
     const response = await axios.get(`${VITE_API_URL}/posts`);
     articles.value = response.data.map((article: PostList) => ({
       title: article.title,
-      content: article.content,
+      content: article.content.substring(0,100)+'...',
       slug: article.slug, // Add this line
       Author: article.user.name,
       date: new Date(article.created_at).toLocaleDateString()

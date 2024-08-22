@@ -97,7 +97,7 @@ const submitLoginForm = async (event: Event) => {
     </div>
 
     <div class="sideInfo">
-      <img src="../assets/images/ToDoListImgUD.png" alt="To-Do List Benefits" class="sideInfo-image" />
+      <img src="../assets/images/Blog.png" alt="To-Do List Benefits" class="sideInfo-image" />
       <div class="benefits-list">
         <h2>Why Use Blog</h2>
         <ul>
@@ -209,7 +209,7 @@ form .txt_field {
 .LogBtn {
   width: 100%;
   height: 50px;
-  background: #20344f; /* Light blue background */
+  background: #007bff; /* Light blue background */
   border-radius: 25px;
   font-size: 18px;
   font-weight: 700;
@@ -221,7 +221,7 @@ form .txt_field {
 }
 
 .LogBtn:hover {
-  background: #a1b8d1; /* Slightly darker blue on hover */
+  background: #0056b3; /* Slightly darker blue on hover */
 }
 
 .RouteRegister {

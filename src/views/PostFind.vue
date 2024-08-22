@@ -1,5 +1,7 @@
 <template>
     <section class="post-details-container">
+        <!-- Notification Component for Confirmation -->
+    <Notification v-if="showConfirmation" :message="confirmationMessage" :hasConfirm="true" @confirm="handleConfirmation(true)" @cancel="handleConfirmation(false)" />
         <div class="arrowBack" @click="goBack"> <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> 
         </div>
       <div v-if="post" class="post-details">
@@ -79,6 +81,12 @@
 const notificationMessage = ref('');
 const showConfirmation = ref(false);
 const confirmationMessage = ref('');
+const handleConfirmation = (confirmed: boolean) => {
+  if (confirmed && onConfirm.value) {
+    onConfirm.value();
+  }
+  showConfirmation.value = false;
+};
 const onConfirm = ref<(() => void) | null>(null);
 const showConfirmDialog = (message: string, onConfirmCallback: () => void) => {
   confirmationMessage.value = message;
@@ -155,6 +163,7 @@ const cancelCommentEdit = () => {
 };
 
 const deleteComment = async (commentId: number) => {
+  showConfirmDialog('Are you sure you want to delete this comment?', async () => {
   try {
     // Ensure the API endpoint is for deleting comments
     await axios.delete(`${VITE_API_URL}/posts/${post.value?.slug}/comments/${commentId}`);    
@@ -167,21 +176,25 @@ const deleteComment = async (commentId: number) => {
     // Optionally, provide user feedback about the error
     alert('Failed to delete the comment. Please try again.');
   }
+});
 };
 
   
   const deletePost = async () => {
   if (post.value) {
+    showConfirmDialog('Are you sure you want to delete this post?', async () => {
     try {
-      await axios.delete(`${VITE_API_URL}/posts/${post.value.slug}`);
+      await axios.delete(`${VITE_API_URL}/posts/${post.value?.slug}`);
       // Redirect to the home or another page after deletion
       router.push('/PostList');
     } catch (error) {
       console.error('Error deleting post:', error);
     }
+  });
   }
 
 };
+
 
   
   const editPost = async () => {
@@ -224,6 +237,7 @@ const deleteComment = async (commentId: number) => {
 .post-details-container {
     margin-top: 50px;
   padding: 20px;
+  background: linear-gradient(135deg, #f4f1ea 0%, #d9c8b3 50%, #b0c4de 100%);
 }
 
 .post-details {
@@ -329,12 +343,23 @@ button {
     margin-top: 20px;
   }
   
-  .edit-title, .edit-content {
+  .edit-title {
     width: 100%;
     padding: 10px;
     border-radius: 5px;
     border: 1px solid #ddd;
     margin-bottom: 10px;
+    font-size: 16px; 
+  }
+  .edit-content{
+    width: 100%; /* Adjust width to fill the container */
+  min-height: 400px; /* Set a minimum height */
+  padding: 10px; /* Add some padding for better appearance */
+  font-size: 16px; /* Increase font size for readability */
+  border-radius: 5px; /* Add rounded corners */
+  border: 1px solid #ccc; /* Add a border */
+  box-sizing: border-box; /* Ensure padding is included in the width and height */
+  margin-bottom: 10px;
   }
   
   .save-button, .cancel-button {
@@ -440,11 +465,10 @@ button {
     background-color: #f0f0f0;
     border-radius: 50%;
     cursor: pointer;
-    position: fixed;
-    top: 98px;
-    left: 575px;
+    position:absolute;
+    top: 12%;
+    left: 25%;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
   }
   
   .arrowBack i {

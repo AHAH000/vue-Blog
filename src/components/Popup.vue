@@ -17,7 +17,10 @@ export default defineComponent({
     const confirmationMessage = ref('');
     const titleInput = ref('');
     const contentInput = ref('');
-
+      
+  const refreshPage = () => {
+  location.reload(); // Reloads the current page
+};
     const handleArticleSubmit = async (event: Event) => {
       event.preventDefault();
       if (!titleInput.value || !contentInput.value) {
@@ -38,6 +41,8 @@ export default defineComponent({
         titleInput.value = '';
         contentInput.value = '';
         closePopup();
+        refreshPage();
+
       } catch (error) {
         showNotification.value = true;
         notificationMessage.value = 'An error occurred while submitting the article. Please try again.';
@@ -78,7 +83,7 @@ export default defineComponent({
         </div>
         <div class="form-group">
           <label for="Content" class="form__label">Content</label>
-          <textarea placeholder="Content" class="form__input" id="Content" v-model="contentInput"></textarea>
+          <textarea placeholder="Content" class="form__input_content" id="Content" v-model="contentInput"></textarea>
         </div>
         <button type="submit" class="form__submit-btn">Submit</button>
       </form>
@@ -151,12 +156,28 @@ h3 {
   border-radius: 4px;
   font-size: 14px;
   box-sizing: border-box;
+  
 }
 
 .form__input:focus {
   border-color: #007bff;
   outline: none;
 }
+.form__input_content {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+  height: 200px;
+}
+
+.form__input_content:focus {
+  border-color: #007bff;
+  outline: none;
+}
+
 
 .form__submit-btn {
   background: #007bff;

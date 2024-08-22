@@ -212,7 +212,7 @@ input {
 button {
   margin: 15px 5px; /* Add margin for spacing between buttons */
   padding: 20px 40px; /* Increase padding for larger button size */
-  background-color: rgb(7, 53, 140); /* Background color for buttons */
+  background-color: #007bff;
   color: white; /* White text color for buttons */
   border: none;
   border-radius: 22px; /* More rounded corners for buttons */
@@ -223,7 +223,7 @@ button {
 }
 
 button:hover {
-  background-color: rgb(0, 27, 100); /* Darker button color on hover */
+  background-color: #0056b3; /* Darker button color on hover */
   transform: scale(1.05); /* Slightly enlarge the button on hover */
 }
 

@@ -88,7 +88,7 @@
   }
   
   .btn-danger {
-    background-color: #f5f5f5; /* Light grey background for cancel button */
+    background-color: #a71616; /* Light grey background for cancel button */
     color: white; /* White text for buttons */
     border: none;
     padding: 12px 24px; /* Increased padding for larger buttons */
@@ -98,7 +98,7 @@
   }
   
   .btn-danger:hover {
-    background-color: #e0e0e0; /* Slightly darker grey on hover */
+    background-color: #921313; /* Slightly darker grey on hover */
   }
   </style>
   
