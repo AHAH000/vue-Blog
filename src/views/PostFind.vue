@@ -196,7 +196,7 @@ const deletePost = async () => {
 const editPost = async () => {
   if (post.value) {
     try {
-      await axios.put(`${VITE_API_URL}/posts/${post.value.slug}`, {
+      await axios.patch(`${VITE_API_URL}/posts/${post.value.slug}`, {
         title: post.value.title,
         content: post.value.content
       });
