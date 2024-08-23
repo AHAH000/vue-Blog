@@ -1,83 +1,82 @@
 <template>
-    <section class="post-details-container">
-        <!-- Notification Component for Confirmation -->
+  <section class="post-details-container">
+    <!-- Notification Component for Confirmation -->
     <Notification v-if="showConfirmation" :message="confirmationMessage" :hasConfirm="true" @confirm="handleConfirmation(true)" @cancel="handleConfirmation(false)" />
-        <div class="arrowBack" @click="goBack"> <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> 
+    <div class="arrowBack" @click="goBack"> <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> 
+    </div>
+    <div v-if="post" class="post-details">
+      <h1 v-if="!isEditing" class="post-title">{{ post.title }}</h1>
+      
+      <!-- Edit form -->
+      <div v-if="isEditing" class="edit-form">
+        <input v-model="post.title" type="text" class="edit-title" />
+        <textarea v-model="post.content" class="edit-content"></textarea>
+        <button @click="editPost" class="save-button">Save</button>
+        <button @click="isEditing = false" class="cancel-button">Cancel</button>
+      </div>
+      
+      <!-- Display post details when not editing -->
+      <div v-else>
+        <div class="post-content">{{ post.content }}</div>
+        <div class="post-meta">
+          <span class="author">Author: {{ post.user.name }}</span>
+          <span class="date">Date: {{ new Date(post.created_at).toLocaleDateString() }}</span>
         </div>
-      <div v-if="post" class="post-details">
-        <h1 v-if="!isEditing" class="post-title">{{ post.title }}</h1>
-        
-        <!-- Edit form -->
-        <div v-if="isEditing" class="edit-form">
-          <input v-model="post.title" type="text" class="edit-title" />
-          <textarea v-model="post.content" class="edit-content"></textarea>
-          <button @click="editPost" class="save-button">Save</button>
-          <button @click="isEditing = false" class="cancel-button">Cancel</button>
+
+        <!-- Show edit button if the user is the post owner -->
+        <div v-if="isPostOwner" class="post-actions">
+          <button @click="isEditing = true" class="edit-post-button">Edit Post</button>
+          <button @click="deletePost" class="delete-post-button">Delete Post</button>
         </div>
         
-        <!-- Display post details when not editing -->
-        <div v-else>
-          <div class="post-content">{{ post.content }}</div>
-          <div class="post-meta">
-            <span class="author">Author: {{ post.user.name }}</span>
-            <span class="date">Date: {{ new Date(post.created_at).toLocaleDateString() }}</span>
-          </div>
-  
-          <!-- Show edit button if the user is the post owner -->
-          <div v-if="isPostOwner" class="post-actions">
-            <button @click="isEditing = true" class="edit-post-button">Edit Post</button>
-            <button @click="deletePost" class="delete-post-button">Delete Post</button>
-          </div>
-          
-          <!-- Comment form -->
-          <div v-if="isAuthenticated" class="comment-form">
-            <textarea v-model="newComment" class="new-comment" placeholder="Add a comment"></textarea>
-            <button @click="addComment" class="comment-button">Add Comment</button>
-          </div>
-  
-          <div class="comments">
-            <h3>Comments</h3>
-            <div v-for="(comment, index) in post.comments" :key="index" class="comment">
-             <!-- Edit Comment Form -->
+        <!-- Comment form -->
+        <div v-if="isAuthenticated" class="comment-form">
+          <textarea v-model="newComment" class="new-comment" placeholder="Add a comment"></textarea>
+          <button @click="addComment" class="comment-button">Add Comment</button>
+        </div>
+
+        <div class="comments">
+          <h3>Comments</h3>
+          <div v-for="(comment, index) in post.comments" :key="index" class="comment">
+            <!-- Edit Comment Form -->
             <div v-if="commentBeingEdited === comment.id">
               <input v-model="editCommentContent" type="text" class="edit-comment-input" />
               <button @click="saveCommentEdit(comment.id)" class="save-button">Save</button>
               <button @click="cancelCommentEdit" class="cancel-button">Cancel</button>
             </div>
             <div v-else>
-                <p class="comment-content">{{ comment.content }}</p>
-                <small class="comment-author">{{ comment.user.name }}</small>
-                <!-- Allow editing and deleting if the post belongs to the current user -->
-                <div v-if="isPostOwner" class="comment-actions">
-                  <button @click="editComment(comment.id, comment.content)" class="edit-button">Edit</button>
-                  <button @click="deleteComment(comment.id)" class="delete-button">Delete</button>
-                </div>
+              <p class="comment-content">{{ comment.content }}</p>
+              <small class="comment-author">{{ comment.user.name }}</small>
+              <!-- Allow editing and deleting if the comment belongs to the current user -->
+              <div v-if="isCommentOwner(comment.user.id)" class="comment-actions">
+                <button @click="editComment(comment.id, comment.content)" class="edit-button">Edit</button>
+                <button @click="deleteComment(comment.id)" class="delete-button">Delete</button>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </section>
-  </template>
-  
-  
-  
+    </div>
+  </section>
+</template>
 
-  <script setup lang="ts">
-  import { ref, onMounted, computed } from 'vue';
-  import { useRoute, useRouter } from 'vue-router';
-  import axios from 'axios';
-  import { isAuthenticated, user, getUser } from '@/auth';
-  import type { PostList } from '@/types/type';
-  import Notification from '@/components/Notification.vue';
   
-  const route = useRoute();
-  const router = useRouter();
-  const VITE_API_URL = 'https://interns-blog.nafistech.com/api';
-  const post = ref<PostList | null>(null);
-  const isEditing = ref(false);
-  const newComment = ref('');
-  const showNotification = ref(false);
+  
+<script setup lang="ts">
+import { ref, onMounted, computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import axios from 'axios';
+import { isAuthenticated, user, getUser } from '@/auth';
+import type { PostList } from '@/types/type';
+import Notification from '@/components/Notification.vue';
+
+const route = useRoute();
+const router = useRouter();
+const VITE_API_URL = 'https://interns-blog.nafistech.com/api';
+const post = ref<PostList | null>(null);
+const isEditing = ref(false);
+const newComment = ref('');
+const showNotification = ref(false);
 const notificationMessage = ref('');
 const showConfirmation = ref(false);
 const confirmationMessage = ref('');
@@ -96,21 +95,22 @@ const showConfirmDialog = (message: string, onConfirmCallback: () => void) => {
 const commentBeingEdited = ref<number | null>(null);
 const editCommentContent = ref('');
 
-  const fetchPostDetails = async () => {
-    try {
-      console.log('Fetching post details for slug:', route.params.slug);
-      const response = await axios.get(`${VITE_API_URL}/posts/${route.params.slug}`);
-      console.log('Post response:', response.data);
-      post.value = response.data;
-    } catch (error) {
-      console.error('Error fetching post details:', error);
-    }
-  };
-  
-  const refreshPage = () => {
+const fetchPostDetails = async () => {
+  try {
+    console.log('Fetching post details for slug:', route.params.slug);
+    const response = await axios.get(`${VITE_API_URL}/posts/${route.params.slug}`);
+    console.log('Post response:', response.data);
+    post.value = response.data;
+  } catch (error) {
+    console.error('Error fetching post details:', error);
+  }
+};
+
+const refreshPage = () => {
   location.reload(); // Reloads the current page
 };
-  const addComment = async () => {
+
+const addComment = async () => {
   if (post.value && newComment.value.trim()) {
     try {
       const response = await axios.post(`${VITE_API_URL}/posts/${post.value.slug}/comments`, {
@@ -164,72 +164,72 @@ const cancelCommentEdit = () => {
 
 const deleteComment = async (commentId: number) => {
   showConfirmDialog('Are you sure you want to delete this comment?', async () => {
-  try {
-    // Ensure the API endpoint is for deleting comments
-    await axios.delete(`${VITE_API_URL}/posts/${post.value?.slug}/comments/${commentId}`);    
-    // Remove the deleted comment from the local state
-    if (post.value) {
-      post.value.comments = post.value.comments.filter(comment => comment.id !== commentId);
+    try {
+      // Ensure the API endpoint is for deleting comments
+      await axios.delete(`${VITE_API_URL}/posts/${post.value?.slug}/comments/${commentId}`);    
+      // Remove the deleted comment from the local state
+      if (post.value) {
+        post.value.comments = post.value.comments.filter(comment => comment.id !== commentId);
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      // Optionally, provide user feedback about the error
+      alert('Failed to delete the comment. Please try again.');
     }
-  } catch (error) {
-    console.error('Error deleting comment:', error);
-    // Optionally, provide user feedback about the error
-    alert('Failed to delete the comment. Please try again.');
-  }
-});
+  });
 };
 
-  
-  const deletePost = async () => {
+const deletePost = async () => {
   if (post.value) {
     showConfirmDialog('Are you sure you want to delete this post?', async () => {
-    try {
-      await axios.delete(`${VITE_API_URL}/posts/${post.value?.slug}`);
-      // Redirect to the home or another page after deletion
-      router.push('/PostList');
-    } catch (error) {
-      console.error('Error deleting post:', error);
-    }
-  });
+      try {
+        await axios.delete(`${VITE_API_URL}/posts/${post.value?.slug}`);
+        // Redirect to the postList after deletion
+        router.push('/PostList');
+      } catch (error) {
+        console.error('Error deleting post:', error);
+      }
+    });
   }
-
 };
 
-
-  
-  const editPost = async () => {
-    if (post.value) {
-      try {
-        await axios.put(`${VITE_API_URL}/posts/${post.value.slug}`, {
-          title: post.value.title,
-          content: post.value.content
-        });
-        // Optionally redirect or show a success message
-        isEditing.value = false;
-      } catch (error) {
-        console.error('Error updating post:', error);
-      }
+const editPost = async () => {
+  if (post.value) {
+    try {
+      await axios.put(`${VITE_API_URL}/posts/${post.value.slug}`, {
+        title: post.value.title,
+        content: post.value.content
+      });
+      // Optionally redirect or show a success message
+      isEditing.value = false;
+    } catch (error) {
+      console.error('Error updating post:', error);
     }
-  };
+  }
+};
 
-  //Go to postList View
-  const goBack = () => {
+// Go to postList View
+const goBack = () => {
   router.push('/PostList');
 };
-  
-  onMounted(async () => {
-    if (!isAuthenticated.value) {
-      router.push('/LoginView');
-    } else {
-      await getUser(); // Ensure user details are fetched before checking ownership
-      await fetchPostDetails();
-    }
-  });
-  
-  const isPostOwner = computed(() => {
-    return post.value && user.value && post.value.user.id === user.value.id;
-  });
-  </script>
+
+onMounted(async () => {
+  if (!isAuthenticated.value) {
+    router.push('/LoginView');
+  } else {
+    await getUser(); // Ensure user details are fetched before checking ownership
+    await fetchPostDetails();
+  }
+});
+
+const isPostOwner = computed(() => {
+  return post.value && user.value && post.value.user.id === user.value.id;
+});
+
+const isCommentOwner = (commentUserId: number) => {
+  return user.value && commentUserId === user.value.id;
+};
+</script>
 
   
 
