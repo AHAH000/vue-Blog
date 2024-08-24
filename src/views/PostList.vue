@@ -34,7 +34,7 @@ const listArticles = async () => {
     articles.value = response.data.map((article: PostList) => ({
       title: article.title,
       content: article.content.substring(0,100)+'...',
-      slug: article.slug, // Add this line
+      slug: article.slug, 
       Author: article.user.name,
       date: new Date(article.created_at).toLocaleDateString()
     }));
@@ -60,7 +60,7 @@ onMounted(() => {
       <h3>Our Blog</h3>
     </div>
 
-    <!--**container**************-->
+    <!--**container***-->
     <div class="blog-container">
       <!-- **main blog cards** -->
       <div class="blog-box-container">
@@ -68,9 +68,9 @@ onMounted(() => {
         <div v-for="(article, index) in articles" :key="index" class="blog-box">
           <div class="blog-box-img">
             <img alt="Placeholder image" src="../assets/images/b2.jpg" />
-            <a href="#" class="blog-img-link">
+            <!-- <a href="#" class="blog-img-link">
               <i class="fa-solid fa-arrow-up-right-from-square"></i>
-            </a>
+            </a> -->
           </div>
           <div class="blog-box-text">
             <strong><a href="#" @click.prevent="viewArticle(article.slug)">
