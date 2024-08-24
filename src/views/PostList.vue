@@ -88,6 +88,7 @@ onMounted(() => {
               </div>
             </div>
           </div>
+          <button a href="#" @click.prevent="viewArticle(article.slug)" class="ReadBtn">Read More </button>
         </div><!--box-end-->
 
         <!-- **small cards** -->
@@ -351,5 +352,23 @@ ul {
     display: none;
   }
 }
+
+.ReadBtn{
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #fff;
+  background-color: #007bff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+.ReadBtn:hover {
+  background-color: #0056b3;
+  transform: scale(1.05);
+}
+
 
 </style>

@@ -107,7 +107,7 @@ const fetchPostDetails = async () => {
 };
 
 const refreshPage = () => {
-  location.reload(); // Reloads the current page
+  location.reload(); 
 };
 
 const addComment = async () => {
@@ -118,7 +118,7 @@ const addComment = async () => {
       });
       // Add the new comment to the local state
       post.value.comments.push(response.data);
-      newComment.value = ''; // Clear the input after adding
+      newComment.value = ''; // To Clear the input after editing
       refreshPage();
       
     } catch (error) {
@@ -139,7 +139,7 @@ const saveCommentEdit = async (commentId: number) => {
     if (!postSlug) {
       throw new Error('Post slug is not available');
     }
-    await axios.put(`${VITE_API_URL}/posts/${postSlug}/comments/${commentId}`, {
+    await axios.patch(`${VITE_API_URL}/posts/${postSlug}/comments/${commentId}`, {
       content: editCommentContent.value
     });
     if (post.value) {
@@ -165,15 +165,13 @@ const cancelCommentEdit = () => {
 const deleteComment = async (commentId: number) => {
   showConfirmDialog('Are you sure you want to delete this comment?', async () => {
     try {
-      // Ensure the API endpoint is for deleting comments
       await axios.delete(`${VITE_API_URL}/posts/${post.value?.slug}/comments/${commentId}`);    
-      // Remove the deleted comment from the local state
+      // To Remove the deleted comment from the local state
       if (post.value) {
         post.value.comments = post.value.comments.filter(comment => comment.id !== commentId);
       }
     } catch (error) {
       console.error('Error deleting comment:', error);
-      // Optionally, provide user feedback about the error
       alert('Failed to delete the comment. Please try again.');
     }
   });
@@ -184,7 +182,6 @@ const deletePost = async () => {
     showConfirmDialog('Are you sure you want to delete this post?', async () => {
       try {
         await axios.delete(`${VITE_API_URL}/posts/${post.value?.slug}`);
-        // Redirect to the postList after deletion
         router.push('/PostList');
       } catch (error) {
         console.error('Error deleting post:', error);
@@ -200,7 +197,6 @@ const editPost = async () => {
         title: post.value.title,
         content: post.value.content
       });
-      // Optionally redirect or show a success message
       isEditing.value = false;
     } catch (error) {
       console.error('Error updating post:', error);
@@ -217,7 +213,7 @@ onMounted(async () => {
   if (!isAuthenticated.value) {
     router.push('/LoginView');
   } else {
-    await getUser(); // Ensure user details are fetched before checking ownership
+    await getUser(); 
     await fetchPostDetails();
   }
 });
