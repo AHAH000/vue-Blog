@@ -29,10 +29,17 @@
       </li>
     </ul>
     <ul class="menu">
-      <li class="menu__item"><a class="menu__link" href="#">Home</a></li>
-      <li class="menu__item"><a class="menu__link" href="#">About</a></li>
-      <li class="menu__item"><a class="menu__link" href="#">Article</a></li>
+      <li class="menu__item">
+        <router-link class="menu__link" to="/">Home</router-link>
+      </li>
+      <li class="menu__item">
+        <router-link class="menu__link" to="/about">About</router-link>
+      </li>
+      <li class="menu__item">
+        <router-link class="menu__link" to="/PostList">Articles</router-link>
+      </li>
     </ul>
+    
   </footer>
 </template>
 
