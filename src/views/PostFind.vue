@@ -6,7 +6,9 @@
     </div>
     <div v-if="post" class="post-details">
       <h1 v-if="!isEditing" class="post-title">{{ post.title }}</h1>
-      
+      <div class="post-image" v-if="post.image">
+        <img :src="post.image" alt="Post Image" />
+      </div>
       <!-- Edit form -->
       <div v-if="isEditing" class="edit-form">
         <input v-model="post.title" type="text" class="edit-title" />
@@ -100,7 +102,7 @@ const fetchPostDetails = async () => {
     console.log('Fetching post details for slug:', route.params.slug);
     const response = await axios.get(`${VITE_API_URL}/posts/${route.params.slug}`);
     console.log('Post response:', response.data);
-    post.value = response.data;
+    post.value = response.data.data;
   } catch (error) {
     console.error('Error fetching post details:', error);
   }
@@ -117,9 +119,8 @@ const addComment = async () => {
         content: newComment.value
       });
       // Add the new comment to the local state
-      post.value.comments.push(response.data);
       newComment.value = ''; // To Clear the input after editing
-      refreshPage();
+      fetchPostDetails();
       
     } catch (error) {
       console.error('Error adding comment:', error);
@@ -474,5 +475,48 @@ button {
   
   .arrowBack:hover {
     background-color: #e0e0e0;
+  }
+  .post-details-container {
+    margin-top: 50px;
+    padding: 20px;
+    background: linear-gradient(135deg, #f4f1ea 0%, #d9c8b3 50%, #b0c4de 100%);
+  }
+  
+  .post-details {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 100px;
+  }
+  
+  .post-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #333;
+  }
+  
+  .post-image img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+  
+  .post-content {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    color: #555;
+  }
+  
+  .post-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+    color: #888;
   }
 </style>

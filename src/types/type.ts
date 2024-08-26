@@ -23,7 +23,11 @@ export interface Register{
     created_at: string;
     updated_at: string;
     user: User; // Associated user (author) of the post
-    comments: any[]; // Adjust this type based on the structure of your comments
+    comments: any[];
+    comments_count:number; // Adjust this type based on the structure of your comments
+    image:string;
+    image_thumb:string;
+    last_comment:string;
   }
   
 
