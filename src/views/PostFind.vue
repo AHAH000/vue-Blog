@@ -438,6 +438,11 @@ button {
     border: 1px solid #ddd;
     margin-bottom: 10px;
   }
+  .edit-comment-input{
+    margin-right: 10px;
+    padding: 10px 10px 10px 10px;
+    width: 200px;
+  }
   
   .edit-button {
     background-color: #007bff;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { isAuthenticated } from '@/auth';
 import Notification from '@/components/Notification.vue';
@@ -15,6 +15,8 @@ const VITE_API_URL = 'https://interns-blog.nafistech.com/api';
 
 // Articles state
 const articles = ref<any[]>([]);
+const searchTerm = ref('');
+const sortOption = ref('latest'); // Default sorting option
 
 const showLoginReminder = () => {
   notificationMessage.value = 'You must log in first';
@@ -28,9 +30,13 @@ const viewArticle = (slug: string) => {
   router.push(`/posts/${slug}`);
 };
 
-const listArticles = async () => {
+const listArticles = async (sort: string = 'latest') => {
   try {
-    const response = await axios.get(`${VITE_API_URL}/posts`);
+    const response = await axios.get(`${VITE_API_URL}/posts`, {
+      params: {
+        sort: sort === 'latest' ? 'desc' : 'asc' // Assuming 'desc' for latest and 'asc' for oldest
+      }
+    });
     articles.value = response.data.data.map((article: PostList) => ({
       title: article.title,
       content: article.content.substring(0, 100) + '...',
@@ -38,7 +44,7 @@ const listArticles = async () => {
       Author: article.user.name,
       date: new Date(article.created_at).toLocaleDateString(),
       commentCount: article.comments_count,
-      Image: article.image_thumb ,
+      Image: article.image_thumb,
       LatestComment: article.last_comment?.content,
     }));
   } catch (error) {
@@ -50,8 +56,23 @@ onMounted(() => {
   if (!isAuthenticated.value) {
     showLoginReminder();
   } else {
-    listArticles(); // Fetch articles if authenticated
+    listArticles(sortOption.value); // Fetch articles if authenticated
   }
+});
+
+const handleSortChange = (event: Event) => {
+  const target = event.target as HTMLSelectElement;
+  sortOption.value = target.value;
+  listArticles(target.value); // Fetch sorted articles based on selected option
+};
+
+const filteredArticles = computed(() => {
+  const term = searchTerm.value.toLowerCase();
+  return articles.value.filter(article =>
+    article.title.toLowerCase().includes(term) ||
+    article.content.toLowerCase().includes(term) ||
+    article.Author.toLowerCase().includes(term)
+  );
 });
 </script>
 
@@ -59,19 +80,35 @@ onMounted(() => {
   <Notification v-if="showNotification" :message="notificationMessage" />
   <section id="blog">
     <div class="blog-heading">
-      <strong>Recent Post</strong>
       <h3>Our Blog</h3>
+    </div>
+
+    <!-- Search Input -->
+    <div class="search-container">
+      <input
+        v-model="searchTerm"
+        type="text"
+        placeholder="Search articles..."
+        class="search-input"
+      />
+    </div>
+    <div class="sort-container">
+      <label for="sort">Sort by:</label>
+      <select id="sort" @change="handleSortChange">
+        <option value="latest" selected>Latest</option>
+        <option value="oldest">Oldest</option>
+      </select>
     </div>
 
     <!-- Container -->
     <div class="blog-container">
       <!-- Main blog cards -->
       <div class="blog-box-container">
-        <!-- Loop through articles and create blog-box for each -->
-        <div v-for="(article, index) in articles" :key="index" class="blog-box">
+        <!-- Loop through filtered articles and create blog-box for each -->
+        <div v-for="(article, index) in filteredArticles" :key="index" class="blog-box">
           <div class="blog-box-img">
             <!-- Conditionally display image or placeholder -->
-            <img v-if="article.Image" :src="article.Image" alt="Article thumbnail " />
+            <img v-if="article.Image" :src="article.Image" alt="Article thumbnail" />
             <img v-else src="../assets/images/b2.jpg" alt="Article thumbnail placeholder" />
           </div>
           <div class="blog-box-text">
@@ -80,7 +117,7 @@ onMounted(() => {
                 {{ article.title }}
               </a>
             </strong>
-            
+
             <p>{{ article.content }}</p>
             <div class="blog-meta">
               <span class="articleDate">{{ article.date }}</span>
@@ -98,7 +135,7 @@ onMounted(() => {
                 </div>
               </div>
             </div>
-            
+
             <div class="latest-comment">
               <div class="comment-bubble">
                 <div class="comment-avatar">
@@ -110,10 +147,6 @@ onMounted(() => {
                 </div>
               </div>
             </div>
-            
-            
-            
-            
           </div>
           <button @click.prevent="viewArticle(article.slug)" class="ReadBtn">Read More</button>
         </div><!-- End of blog-box -->
@@ -134,6 +167,7 @@ onMounted(() => {
     <Popup v-model:isVisible="showPopup" />
   </section>
 </template>
+
 
 
 <style scoped>
@@ -168,6 +202,7 @@ ul {
   font-weight: 800;
   text-transform: uppercase;
   line-height: 2.4rem;
+  margin: 10px 0 0 0 ;
 }
 
 .blog-heading strong {
@@ -445,4 +480,70 @@ ul {
   border-radius: 8px;
   z-index: 1000;
 }
+/*Search Bar */
+
+.search-container {
+  margin: 20px 0px 20px 0px;
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  justify-content: center;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 20px;
+  font-size: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 25px; /* Rounded corners */
+  outline: none;
+  background-color: #f9f9f9;
+  transition: all 0.3s ease;
+}
+
+.search-input::placeholder {
+  color: #aaa;
+}
+
+.search-input:focus {
+  border-color: #007bff;
+  background-color: #ffffff;
+  box-shadow: 0 0 8px rgba(0, 123, 255, 0.2);
+}
+
+.search-input::placeholder {
+  font-style: italic;
+}
+
+/*sort */
+
+.sort-container {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sort-container label {
+  font-size: 1rem;
+  color: #333333; /* Text color for the label */
+}
+
+.sort-container select {
+  padding: 8px 12px;
+  font-size: 1rem;
+  border: 1px solid #2a4a9b; /* Border color */
+  border-radius: 20px; /* Rounded corners */
+  background-color: #ffffff; /* Background color of the dropdown */
+  color: #333333; /* Text color inside the dropdown */
+  transition: border-color 0.3s ease;
+}
+
+.sort-container select:focus {
+  border-color: #007bff; /* Border color when focused */
+  outline: none;
+}
+
 </style>
+
+

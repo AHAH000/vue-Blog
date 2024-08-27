@@ -86,6 +86,7 @@ nav {
   align-items: center;
   height: 60px;
   transition: background-color 0.5s;
+  z-index:1;
 }
 
 @keyframes myGradient {

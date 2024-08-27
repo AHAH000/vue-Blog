@@ -13,6 +13,13 @@ export interface Register{
     id: number;
     name: string;
   }
+  export interface last_comment{
+    id: number;
+    content: string;
+    created_at: string;
+    created_at_readable: string;
+    User:User;
+  }
   
   export interface PostList {
     id: number;
@@ -27,7 +34,7 @@ export interface Register{
     comments_count:number; // Adjust this type based on the structure of your comments
     image:string;
     image_thumb:string;
-    last_comment:string;
+    last_comment:last_comment;
   }
   
 
