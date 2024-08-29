@@ -46,6 +46,7 @@ export interface PostArticle {
 export interface Comment {
   content:string;
   user:User;
+  created_at_readable:string;
 }
 
 

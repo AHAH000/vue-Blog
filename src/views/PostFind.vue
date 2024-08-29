@@ -39,7 +39,7 @@
 
         <div class="comments">
           <h3>Comments</h3>
-          <div v-for="(comment, index) in post.comments" :key="index" class="comment">
+          <div v-for="(comment, index) in post.comments.slice().reverse()" :key="index" class="comment">
             <!-- Edit Comment Form -->
             <div v-if="commentBeingEdited === comment.id">
               <input v-model="editCommentContent" type="text" class="edit-comment-input" />
@@ -49,6 +49,8 @@
             <div v-else>
               <p class="comment-content">{{ comment.content }}</p>
               <small class="comment-author">{{ comment.user.name }}</small>
+              <small class="comment-date">{{ comment.created_at_readable }}</small>
+
               <!-- Allow editing and deleting if the comment belongs to the current user -->
               <div v-if="isCommentOwner(comment.user.id)" class="comment-actions">
                 <button @click="editComment(comment.id, comment.content)" class="edit-button">Edit</button>
@@ -286,6 +288,11 @@ const isCommentOwner = (commentUserId: number) => {
 .comment-author {
   font-size: 0.9rem;
   color: #666;
+}
+.comment-date{
+  font-size: 0.9rem;
+  color: black;
+  margin-left: 612px;
 }
 
 .comment-actions {

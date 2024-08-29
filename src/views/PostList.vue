@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { isAuthenticated } from '@/auth';
 import Notification from '@/components/Notification.vue';
@@ -13,8 +13,11 @@ const showPopup = ref(false);
 const router = useRouter();
 const VITE_API_URL = 'https://interns-blog.nafistech.com/api';
 
-// Articles state
+// Pagination state
 const articles = ref<any[]>([]);
+const currentPage = ref(1);
+const lastPage = ref(1);
+const paginationLinks = ref<any[]>([]);
 const searchTerm = ref('');
 const sortOption = ref('latest'); // Default sorting option
 
@@ -30,13 +33,16 @@ const viewArticle = (slug: string) => {
   router.push(`/posts/${slug}`);
 };
 
-const listArticles = async (sort: string = 'latest') => {
+const listArticles = async (page: number = 1, sort: string = 'latest', search: string = '') => {
   try {
     const response = await axios.get(`${VITE_API_URL}/posts`, {
       params: {
-        sort: sort === 'latest' ? 'desc' : 'asc' // Assuming 'desc' for latest and 'asc' for oldest
+        page,
+        sort: sort === 'latest' ? 'desc' : 'asc',
+        search: search
       }
     });
+
     articles.value = response.data.data.map((article: PostList) => ({
       title: article.title,
       content: article.content.substring(0, 100) + '...',
@@ -46,25 +52,74 @@ const listArticles = async (sort: string = 'latest') => {
       commentCount: article.comments_count,
       Image: article.image_thumb,
       LatestComment: article.last_comment?.content,
+      // LatestCommentUser:article.last_comment?.User?.name,
     }));
+
+    currentPage.value = response.data.meta.current_page;
+    lastPage.value = response.data.meta.last_page;
+    paginationLinks.value = response.data.meta.links;
+    if (articles.value.length === 0) {
+      notificationMessage.value = 'No article is found';
+      showNotification.value = true;
+    }
   } catch (error) {
     console.error('Error Listing Articles:', error);
   }
 };
 
+
+
+const goToNextPage = () => {
+  if (currentPage.value < lastPage.value) {
+    listArticles(currentPage.value + 1, sortOption.value);
+  }
+};
+
+const goToPreviousPage = () => {
+  if (currentPage.value > 1) {
+    listArticles(currentPage.value - 1, sortOption.value);
+  }
+};
+
+const goToPage = async (page: number) => {
+  try {
+    // Update the articles list for the selected page
+    await listArticles(page, sortOption.value, searchTerm.value);
+    
+    // Scroll to the top of the page
+    window.scrollTo({
+      top: 0,
+      behavior: 'auto' // Optional: Add smooth scrolling
+    });
+  } catch (error) {
+    console.error('Error going to page:', error);
+  }
+};
+
+
 onMounted(() => {
   if (!isAuthenticated.value) {
     showLoginReminder();
   } else {
-    listArticles(sortOption.value); // Fetch articles if authenticated
+    listArticles(currentPage.value, sortOption.value);
   }
 });
 
 const handleSortChange = (event: Event) => {
   const target = event.target as HTMLSelectElement;
   sortOption.value = target.value;
-  listArticles(target.value); // Fetch sorted articles based on selected option
+  listArticles(currentPage.value, target.value, searchTerm.value);
 };
+watch(searchTerm, (newValue) => {
+  listArticles(currentPage.value, sortOption.value, newValue);
+});
+
+const handleSearchChange = () => {
+  // Reset currentPage to 1 when performing a new search
+  currentPage.value = 1;
+  listArticles(currentPage.value, sortOption.value, searchTerm.value);
+};
+
 
 const filteredArticles = computed(() => {
   const term = searchTerm.value.toLowerCase();
@@ -74,6 +129,7 @@ const filteredArticles = computed(() => {
     article.Author.toLowerCase().includes(term)
   );
 });
+
 </script>
 
 <template>
@@ -86,11 +142,13 @@ const filteredArticles = computed(() => {
     <!-- Search Input -->
     <div class="search-container">
       <input
-        v-model="searchTerm"
-        type="text"
-        placeholder="Search articles..."
-        class="search-input"
-      />
+      v-model="searchTerm"
+      type="text"
+      placeholder="Search articles..."
+      class="search-input"
+      @input="handleSearchChange"
+    />
+    
     </div>
     <div class="sort-container">
       <label for="sort">Sort by:</label>
@@ -104,8 +162,13 @@ const filteredArticles = computed(() => {
     <div class="blog-container">
       <!-- Main blog cards -->
       <div class="blog-box-container">
+        <!-- If no articles are found, display a message -->
+        <div v-if="articles.length === 0" class="no-articles">
+          No article is found.
+        </div>
+
         <!-- Loop through filtered articles and create blog-box for each -->
-        <div v-for="(article, index) in filteredArticles" :key="index" class="blog-box">
+        <div v-else v-for="(article, index) in filteredArticles" :key="index" class="blog-box">
           <div class="blog-box-img">
             <!-- Conditionally display image or placeholder -->
             <img v-if="article.Image" :src="article.Image" alt="Article thumbnail" />
@@ -150,11 +213,6 @@ const filteredArticles = computed(() => {
           </div>
           <button @click.prevent="viewArticle(article.slug)" class="ReadBtn">Read More</button>
         </div><!-- End of blog-box -->
-
-        <!-- Small cards -->
-        <div class="small-cards-container">
-          <!-- Add small card rendering here if needed -->
-        </div>
       </div>
     </div>
 
@@ -163,10 +221,16 @@ const filteredArticles = computed(() => {
       <button @click="showPopup = true" class="addArticlebtn">Add Story</button>
     </div>
 
+    <!-- Pagination Controls -->
+    <div class="pagination-controls">
+      <button v-for="link in paginationLinks" :key="link.label" @click="goToPage(link.url?.split('page=')[1])" v-html="link.label" :disabled="link.active || !link.url"></button>
+    </div>
+
     <!-- Popup Component -->
     <Popup v-model:isVisible="showPopup" />
   </section>
 </template>
+
 
 
 
@@ -543,6 +607,59 @@ ul {
   border-color: #007bff; /* Border color when focused */
   outline: none;
 }
+/*Pagination*/
+
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 10px 0px 20px 0px;
+}
+
+.pagination-controls button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 5px;
+  background-color: #007bff; /* Blue color */
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.pagination-controls button:hover:not(:disabled) {
+  background-color: #0056b3; /* Darker blue on hover */
+  transform: scale(1.05); /* Slight zoom on hover */
+}
+
+.pagination-controls button:disabled {
+  background-color: #1f43a7; 
+  cursor: not-allowed;
+}
+
+.pagination-controls button[disabled] {
+  pointer-events: none; /* Disable interaction */
+}
+
+.pagination-controls button:active,
+.pagination-controls button:focus {
+  background-color: #003f7f; /* Dark blue for active state */
+  transform: scale(1); /* No zoom on active */
+  outline: none;
+}
+
+.pagination-controls button[disabled]:active,
+.pagination-controls button[disabled]:focus {
+  background-color: #cccccc; /* Keep gray for disabled buttons */
+  transform: none;
+}
+
+.LastCommentAuthor{
+  font-size: 2rem;
+  color: red;
+}
+
 
 </style>
 
