@@ -154,6 +154,7 @@ export default defineComponent({
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 99999;
 }
 
 .popup-content {
