@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { isAuthenticated } from '@/auth';
+import { isAuthenticated, user } from '@/auth';
 import Notification from '@/components/Notification.vue';
 import Popup from '@/components/Popup.vue';
 import axios from 'axios';
@@ -12,7 +12,6 @@ const notificationMessage = ref('');
 const showPopup = ref(false);
 const router = useRouter();
 const VITE_API_URL = 'https://interns-blog.nafistech.com/api';
-
 // Pagination state
 const articles = ref<any[]>([]);
 const currentPage = ref(1);
@@ -52,16 +51,14 @@ const listArticles = async (page: number = 1, sort: string = 'latest', search: s
       commentCount: article.comments_count,
       Image: article.image_thumb,
       LatestComment: article.last_comment?.content,
+      userId:article.user.id,
       // LatestCommentUser:article.last_comment?.User?.name,
     }));
 
     currentPage.value = response.data.meta.current_page;
     lastPage.value = response.data.meta.last_page;
     paginationLinks.value = response.data.meta.links;
-    if (articles.value.length === 0) {
-      notificationMessage.value = 'No article is found';
-      showNotification.value = true;
-    }
+    
   } catch (error) {
     console.error('Error Listing Articles:', error);
   }
@@ -130,6 +127,8 @@ const filteredArticles = computed(() => {
   );
 });
 
+
+
 </script>
 
 <template>
@@ -163,12 +162,10 @@ const filteredArticles = computed(() => {
       <!-- Main blog cards -->
       <div class="blog-box-container">
         <!-- If no articles are found, display a message -->
-        <div v-if="articles.length === 0" class="no-articles">
-          No article is found.
-        </div>
+       
 
         <!-- Loop through filtered articles and create blog-box for each -->
-        <div v-else v-for="(article, index) in filteredArticles" :key="index" class="blog-box">
+        <div  v-for="(article, index) in filteredArticles" :key="index" class="blog-box">
           <div class="blog-box-img">
             <!-- Conditionally display image or placeholder -->
             <img v-if="article.Image" :src="article.Image" alt="Article thumbnail" />
@@ -328,6 +325,8 @@ ul {
 .blog-box-text {
   padding: 20px;
   flex: 1;
+  font-weight: bolder;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
 .blog-box-text strong {
