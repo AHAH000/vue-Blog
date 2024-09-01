@@ -52,7 +52,7 @@ const listArticles = async (page: number = 1, sort: string = 'latest', search: s
       Image: article.image_thumb,
       LatestComment: article.last_comment?.content,
       userId:article.user.id,
-      // LatestCommentUser:article.last_comment?.User?.name,
+      LastCommentAuthor: article.last_comment?.User?.name ,
     }));
 
     currentPage.value = response.data.meta.current_page;
@@ -66,17 +66,6 @@ const listArticles = async (page: number = 1, sort: string = 'latest', search: s
 
 
 
-const goToNextPage = () => {
-  if (currentPage.value < lastPage.value) {
-    listArticles(currentPage.value + 1, sortOption.value);
-  }
-};
-
-const goToPreviousPage = () => {
-  if (currentPage.value > 1) {
-    listArticles(currentPage.value - 1, sortOption.value);
-  }
-};
 
 const goToPage = async (page: number) => {
   try {
@@ -86,7 +75,7 @@ const goToPage = async (page: number) => {
     // Scroll to the top of the page
     window.scrollTo({
       top: 0,
-      behavior: 'auto' // Optional: Add smooth scrolling
+      behavior: 'auto' 
     });
   } catch (error) {
     console.error('Error going to page:', error);
@@ -112,7 +101,6 @@ watch(searchTerm, (newValue) => {
 });
 
 const handleSearchChange = () => {
-  // Reset currentPage to 1 when performing a new search
   currentPage.value = 1;
   listArticles(currentPage.value, sortOption.value, searchTerm.value);
 };
@@ -204,6 +192,7 @@ const filteredArticles = computed(() => {
                 <div class="comment-content">
                   <strong>Latest Comment:</strong>
                   <p>{{ article.LatestComment || 'No comments yet' }}</p>
+                  <p>{{article.LastCommentAuthor || ' '}}</p>
                 </div>
               </div>
             </div>

@@ -1,3 +1,4 @@
+can you make the image upload section looks better 
 <template>
   <section class="post-details-container">
     <!-- Notification Component for Confirmation -->
@@ -6,13 +7,24 @@
     </div>
     <div v-if="post" class="post-details">
       <h1 v-if="!isEditing" class="post-title">{{ post.title }}</h1>
-      <div class="post-image" v-if="post.image">
+      <div class="post-image" v-if="post.image && !isEditing">
         <img :src="post.image" alt="Post Image" />
       </div>
       <!-- Edit form -->
       <div v-if="isEditing" class="edit-form">
         <input v-model="post.title" type="text" class="edit-title" />
         <textarea v-model="post.content" class="edit-content"></textarea>
+        
+        <!-- Image upload form -->
+        <div class="image-upload">
+          <label for="imageUpload">Upload New Image:</label>
+          <input type="file" id="imageUpload" @change="onFileChange" />
+          <div v-if="imagePreview" class="image-preview">
+            <img :src="imagePreview" alt="Image Preview" />
+            <button @click="removeImage" class="remove-image-button">Remove Image</button>
+          </div>
+        </div>
+
         <button @click="editPost" class="save-button">Save</button>
         <button @click="isEditing = false" class="cancel-button">Cancel</button>
       </div>
@@ -64,6 +76,7 @@
   </section>
 </template>
 
+
   
   
 <script setup lang="ts">
@@ -99,31 +112,26 @@ const showConfirmDialog = (message: string, onConfirmCallback: () => void) => {
 const commentBeingEdited = ref<number | null>(null);
 const editCommentContent = ref('');
 
+const imageFile = ref<File | null>(null);
+const imagePreview = ref<string | null>(null);
+
 const fetchPostDetails = async () => {
   try {
-    console.log('Fetching post details for slug:', route.params.slug);
     const response = await axios.get(`${VITE_API_URL}/posts/${route.params.slug}`);
-    console.log('Post response:', response.data);
     post.value = response.data.data;
   } catch (error) {
     console.error('Error fetching post details:', error);
   }
 };
 
-const refreshPage = () => {
-  location.reload(); 
-};
-
 const addComment = async () => {
   if (post.value && newComment.value.trim()) {
     try {
-      const response = await axios.post(`${VITE_API_URL}/posts/${post.value.slug}/comments`, {
+      await axios.post(`${VITE_API_URL}/posts/${post.value.slug}/comments`, {
         content: newComment.value
       });
-      // Add the new comment to the local state
-      newComment.value = ''; // To Clear the input after editing
+      newComment.value = '';
       fetchPostDetails();
-      
     } catch (error) {
       console.error('Error adding comment:', error);
     }
@@ -135,21 +143,16 @@ const editComment = (commentId: number, currentContent: string) => {
   editCommentContent.value = currentContent;
 };
 
-// Save Comment Edit
 const saveCommentEdit = async (commentId: number) => {
   try {
     const postSlug = post.value?.slug;
-    if (!postSlug) {
-      throw new Error('Post slug is not available');
-    }
+    if (!postSlug) throw new Error('Post slug is not available');
     await axios.patch(`${VITE_API_URL}/posts/${postSlug}/comments/${commentId}`, {
       content: editCommentContent.value
     });
     if (post.value) {
       const comment = post.value.comments.find(comment => comment.id === commentId);
-      if (comment) {
-        comment.content = editCommentContent.value;
-      }
+      if (comment) comment.content = editCommentContent.value;
     }
     commentBeingEdited.value = null;
     editCommentContent.value = '';
@@ -159,7 +162,6 @@ const saveCommentEdit = async (commentId: number) => {
   }
 };
 
-// Cancel Comment Edit
 const cancelCommentEdit = () => {
   commentBeingEdited.value = null;
   editCommentContent.value = '';
@@ -168,11 +170,8 @@ const cancelCommentEdit = () => {
 const deleteComment = async (commentId: number) => {
   showConfirmDialog('Are you sure you want to delete this comment?', async () => {
     try {
-      await axios.delete(`${VITE_API_URL}/posts/${post.value?.slug}/comments/${commentId}`);    
-      // To Remove the deleted comment from the local state
-      if (post.value) {
-        post.value.comments = post.value.comments.filter(comment => comment.id !== commentId);
-      }
+      await axios.delete(`${VITE_API_URL}/posts/${post.value?.slug}/comments/${commentId}`);
+      if (post.value) post.value.comments = post.value.comments.filter(comment => comment.id !== commentId);
     } catch (error) {
       console.error('Error deleting comment:', error);
       alert('Failed to delete the comment. Please try again.');
@@ -193,34 +192,45 @@ const deletePost = async () => {
   }
 };
 
+// Handle file input change and preview
+const onFileChange = (event: Event) => {
+  const file = (event.target as HTMLInputElement).files?.[0] || null;
+  if (file) {
+    imageFile.value = file;
+    imagePreview.value = URL.createObjectURL(file);
+  }
+};
+
+// Remove the selected image
+const removeImage = () => {
+  imageFile.value = null;
+  imagePreview.value = null;
+};
+
+// Edit post and upload new image
 const editPost = async () => {
   if (post.value) {
     try {
-      await axios.patch(`${VITE_API_URL}/posts/${post.value.slug}`, {
-        title: post.value.title,
-        content: post.value.content
+      const formData = new FormData();
+      formData.append('title', post.value.title);
+      formData.append('content', post.value.content);
+      if (imageFile.value) {
+        formData.append('image', imageFile.value);
+      }
+      await axios.patch(`${VITE_API_URL}/posts/${post.value.slug}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
       isEditing.value = false;
+      fetchPostDetails();
     } catch (error) {
-      console.error('Error updating post:', error);
+      console.error('Error editing post:', error);
     }
   }
 };
 
-// Go to postList View
-const goBack = () => {
-  router.push('/PostList');
-};
-
-onMounted(async () => {
-  if (!isAuthenticated.value) {
-    router.push('/LoginView');
-  } else {
-    await getUser(); 
-    await fetchPostDetails();
-  }
-});
-
+// Check if the current user is the post owner
 const isPostOwner = computed(() => {
   return post.value && user.value && post.value.user.id === user.value.id;
 });
@@ -228,17 +238,28 @@ const isPostOwner = computed(() => {
 const isCommentOwner = (commentUserId: number) => {
   return user.value && commentUserId === user.value.id;
 };
+onMounted(() => {
+  fetchPostDetails();
+});
+
+// Navigate back to the previous page
+const goBack = () => {
+  router.back();
+};
 </script>
+
 
   
 
 <style scoped>
+/* Container for the entire post details page */
 .post-details-container {
-    margin-top: 50px;
+  margin-top: 50px;
   padding: 20px;
   background: linear-gradient(135deg, #f4f1ea 0%, #d9c8b3 50%, #b0c4de 100%);
 }
 
+/* Container for the individual post details */
 .post-details {
   max-width: 800px;
   margin: 0 auto;
@@ -248,6 +269,7 @@ const isCommentOwner = (commentUserId: number) => {
   margin-bottom: 100px;
 }
 
+/* Title of the post */
 .post-title {
   font-size: 2.5rem;
   font-weight: bold;
@@ -255,13 +277,23 @@ const isCommentOwner = (commentUserId: number) => {
   color: #333;
 }
 
-.post-content {
-    font-size: 1.1rem;
-    line-height: 1.6;
-    margin-bottom: 20px;
-    color: #555;
+/* Image associated with the post */
+.post-image img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin-bottom: 20px;
 }
 
+/* Content of the post */
+.post-content {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-bottom: 20px;
+  color: #555;
+}
+
+/* Metadata about the post (e.g., author, date) */
 .post-meta {
   display: flex;
   justify-content: space-between;
@@ -270,35 +302,43 @@ const isCommentOwner = (commentUserId: number) => {
   color: #888;
 }
 
+/* Section for comments */
 .comments {
   margin-top: 30px;
 }
 
+/* Individual comment styling */
 .comment {
   border-bottom: 1px solid #eee;
   padding: 10px 0;
 }
 
+/* Content of a comment */
 .comment-content {
   font-size: 1rem;
   color: #333;
   margin-bottom: 5px;
 }
 
+/* Author of the comment */
 .comment-author {
   font-size: 0.9rem;
   color: #666;
 }
-.comment-date{
+
+/* Date of the comment */
+.comment-date {
   font-size: 0.9rem;
   color: black;
-  margin-left: 612px;
+  margin-left: 605px;
 }
 
+/* Comment actions (e.g., edit, delete) */
 .comment-actions {
   margin-top: 10px;
 }
 
+/* Buttons styling */
 button {
   padding: 5px 10px;
   border: none;
@@ -308,6 +348,7 @@ button {
   transition: background-color 0.3s ease;
 }
 
+/* Delete button styling */
 .delete-button {
   background-color: #ff4d4d;
   color: white;
@@ -318,6 +359,7 @@ button {
   background-color: #cc0000;
 }
 
+/* Edit button styling */
 .edit-button {
   background-color: #007bff;
   color: white;
@@ -326,209 +368,228 @@ button {
 .edit-button:hover {
   background-color: #0056b3;
 }
-.post-actions {
-    margin-top: 20px;
-  }
-  
-  .delete-post-button {
-    background-color: #ff4d4d;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: background-color 0.3s ease;
-  }
-  
-  .delete-post-button:hover {
-    background-color: #cc0000;
-  }.edit-form {
-    margin-top: 20px;
-  }
-  
-  .edit-title {
-    width: 100%;
-    padding: 10px;
-    border-radius: 5px;
-    border: 1px solid #ddd;
-    margin-bottom: 10px;
-    font-size: 16px; 
-  }
-  .edit-content{
-    width: 100%; /* Adjust width to fill the container */
-  min-height: 400px; /* Set a minimum height */
-  padding: 10px; /* Add some padding for better appearance */
-  font-size: 16px; /* Increase font size for readability */
-  border-radius: 5px; /* Add rounded corners */
-  border: 1px solid #ccc; /* Add a border */
-  box-sizing: border-box; /* Ensure padding is included in the width and height */
-  margin-bottom: 10px;
-  }
-  
-  .save-button, .cancel-button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: background-color 0.3s ease;
-  }
-  
-  .save-button {
-    background-color: #4caf50;
-    color: white;
-  }
-  
-  .save-button:hover {
-    background-color: #45a049;
-  }
-  
-  .cancel-button {
-    background-color: #f44336;
-    color: white;
-    margin-left: 10px;
-  }
-  
-  .cancel-button:hover {
-    background-color: #e53935;
-  }
-  .edit-post-button {
-    background-color: #007bff;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: background-color 0.3s ease;
-  }
-  
-  .edit-post-button:hover {
-    background-color: #0056b3;
-  }.edit-form {
-    margin-top: 20px;
-  }
 
-  .comment-form {
-    margin-top: 20px;
-  }
-  
-  .new-comment {
-    width: 100%;
-    padding: 10px;
-    border-radius: 5px;
-    border: 1px solid #ddd;
-    margin-bottom: 10px;
-    height: 80px;
-    resize: vertical;
-  }
-  
-  .comment-button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1rem;
-    background-color: #007bff;
-    color: white;
-    transition: background-color 0.3s ease;
-  }
-  
-  .comment-button:hover {
-    background-color: #0056b3;
-  }
-  .edit-comment-content {
-    width: 100%;
-    padding: 10px;
-    border-radius: 5px;
-    border: 1px solid #ddd;
-    margin-bottom: 10px;
-  }
-  .edit-comment-input{
-    margin-right: 10px;
-    padding: 10px 10px 10px 10px;
-    width: 200px;
-  }
-  
-  .edit-button {
-    background-color: #007bff;
-    color: white;
-    padding: 5px 10px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: background-color 0.3s ease;
-  }
-  
-  .edit-button:hover {
-    background-color: #0056b3;
-  }
-  .arrowBack {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    background-color: #f0f0f0;
-    border-radius: 50%;
-    cursor: pointer;
-    position:absolute;
-    top: 12%;
-    left: 25%;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  
-  .arrowBack i {
-    font-size: 20px;
-    color: #007bff;
-  }
-  
-  .arrowBack:hover {
-    background-color: #e0e0e0;
-  }
-  .post-details-container {
-    margin-top: 50px;
-    padding: 20px;
-    background: linear-gradient(135deg, #f4f1ea 0%, #d9c8b3 50%, #b0c4de 100%);
-  }
-  
-  .post-details {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    margin-bottom: 100px;
-  }
-  
-  .post-title {
-    font-size: 2.5rem;
-    font-weight: bold;
-    margin-bottom: 10px;
-    color: #333;
-  }
-  
-  .post-image img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 8px;
-    margin-bottom: 20px;
-  }
-  
-  .post-content {
-    font-size: 1.1rem;
-    line-height: 1.6;
-    margin-bottom: 20px;
-    color: #555;
-  }
-  
-  .post-meta {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    font-size: 0.9rem;
-    color: #888;
-  }
+/* Post actions (e.g., delete post) */
+.post-actions {
+  margin-top: 20px;
+}
+
+/* Delete post button styling */
+.delete-post-button {
+  background-color: #ff4d4d;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.delete-post-button:hover {
+  background-color: #cc0000;
+}
+
+/* Edit form styling */
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  margin-top: 20px;
+}
+
+/* Image upload styling */
+.image-upload {
+  margin-top: 1rem;
+  padding: 1.5rem;
+  border: 2px dashed #007bff;
+  border-radius: 12px;
+  background-color: #f9f9f9;
+  position: relative;
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.image-upload:hover {
+  border-color: #0056b3;
+  background-color: #e6f0ff;
+}
+
+.upload-label {
+  display: block;
+  font-size: 1.1rem;
+  color: #333;
+  margin-bottom: 0.75rem;
+}
+
+.file-input {
+  display: block;
+  margin: 0 auto;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.file-input:focus {
+  border-color: #007bff;
+  background-color: #f0f8ff;
+  outline: none;
+}
+
+.image-preview {
+  margin-top: 1rem;
+  position: relative;
+}
+
+/* Image preview styling */
+.image-preview img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+/* Remove image button styling */
+.remove-image-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #ff4d4d;
+  color: white;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.remove-image-button:hover {
+  background-color: #cc0000;
+  transform: scale(1.1);
+}
+
+/* Save and cancel buttons styling */
+.save-button, .cancel-button {
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.save-button {
+  background-color: #4caf50;
+  color: white;
+}
+
+.save-button:hover {
+  background-color: #45a049;
+  transform: scale(1.05);
+}
+
+.cancel-button {
+  background-color: #f44336;
+  color: white;
+  margin-left: 10px;
+}
+
+.cancel-button:hover {
+  background-color: #e53935;
+  transform: scale(1.05);
+}
+
+/* Button to edit the post */
+.edit-post-button {
+  background-color: #007bff;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.edit-post-button:hover {
+  background-color: #0056b3;
+  transform: scale(1.05);
+}
+
+/* Comment form styling */
+.comment-form {
+  margin-top: 20px;
+}
+
+/* New comment textarea */
+.new-comment {
+  width: 100%;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+  margin-bottom: 10px;
+  height: 80px;
+  resize: vertical;
+}
+
+/* Comment button styling */
+.comment-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  background-color: #007bff;
+  color: white;
+  transition: background-color 0.3s ease;
+}
+
+.comment-button:hover {
+  background-color: #0056b3;
+}
+
+/* Styling for editing comment content */
+.edit-comment-content {
+  width: 100%;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+  margin-bottom: 10px;
+}
+
+/* Edit comment input */
+.edit-comment-input {
+  margin-right: 10px;
+  padding: 10px;
+  width: 200px;
+}
+
+/* Arrow back button styling */
+.arrowBack {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: #f0f0f0;
+  border-radius: 50%;
+  cursor: pointer;
+  position: absolute;
+  top: 12%;
+  left: 25%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.arrowBack i {
+  font-size: 20px;
+  color: #007bff;
+}
+
+.arrowBack:hover {
+  background-color: #e0e0e0;
+}
 </style>
