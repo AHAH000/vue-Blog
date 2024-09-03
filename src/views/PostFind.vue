@@ -1,4 +1,3 @@
-can you make the image upload section looks better 
 <template>
   <section class="post-details-container">
     <!-- Notification Component for Confirmation -->
@@ -39,8 +38,8 @@ can you make the image upload section looks better
 
         <!-- Show edit button if the user is the post owner -->
         <div v-if="isPostOwner" class="post-actions">
-          <button @click="isEditing = true" class="edit-post-button">Edit Post</button>
-          <button @click="deletePost" class="delete-post-button">Delete Post</button>
+          <button @click="isEditing = true" class="edit-post-button">          <i class="fa-solid fa-pen"></i></button>
+          <button @click="deletePost" class="delete-post-button">          <i class="fa-solid fa-trash"></i></button>
         </div>
         
         <!-- Comment form -->
@@ -48,6 +47,23 @@ can you make the image upload section looks better
           <textarea v-model="newComment" class="new-comment" placeholder="Add a comment"></textarea>
           <button @click="addComment" class="comment-button">Add Comment</button>
         </div>
+           <!-- Likes Section -->
+            <div class="likes-section">
+              <button @click="toggleLike" :class="{'liked': post.liked_by_user}" class="like-btn">
+                <i class="fa-solid fa-heart" aria-hidden="true"></i>
+                {{ post.likes_count }} Likes
+                <div class="liked-users-box" v-if="post.likes && post.likes.length ">
+                  <h3>Liked by:</h3>
+                  <ul>
+                    <li v-for="like in post.likes" :key="like.id">
+                      {{ like.name }}
+                    </li>
+                  </ul>
+                </div>
+              </button>
+            </div>
+            
+
 
         <div class="comments">
           <h3>Comments</h3>
@@ -65,8 +81,8 @@ can you make the image upload section looks better
 
               <!-- Allow editing and deleting if the comment belongs to the current user -->
               <div v-if="isCommentOwner(comment.user.id)" class="comment-actions">
-                <button @click="editComment(comment.id, comment.content)" class="edit-button">Edit</button>
-                <button @click="deleteComment(comment.id)" class="delete-button">Delete</button>
+                <button @click="editComment(comment.id, comment.content)" class="edit-button"> <i class="fa-solid fa-pen"></i></button>
+                <button @click="deleteComment(comment.id)" class="delete-button"><i class="fa-solid fa-trash"></i></button>
               </div>
             </div>
           </div>
@@ -86,7 +102,6 @@ import axios from 'axios';
 import { isAuthenticated, user, getUser } from '@/auth';
 import type { PostList } from '@/types/type';
 import Notification from '@/components/Notification.vue';
-
 const route = useRoute();
 const router = useRouter();
 const VITE_API_URL = 'https://interns-blog.nafistech.com/api';
@@ -123,6 +138,26 @@ const fetchPostDetails = async () => {
     console.error('Error fetching post details:', error);
   }
 };
+
+// Function to  like status
+const toggleLike = async () => {
+  if (post.value) {
+    try {
+      await axios.post(`${VITE_API_URL}/posts/like/${post.value.slug}`);
+      // Toggle liked_by_user and update likes_count based on the current state
+      if (post.value.liked_by_user) {
+        post.value.liked_by_user = false;
+        post.value.likes_count -= 1;
+      } else {
+        post.value.liked_by_user = true;
+        post.value.likes_count += 1;
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
+  }
+};
+
 
 const addComment = async () => {
   if (post.value && newComment.value.trim()) {
@@ -352,21 +387,41 @@ button {
 .delete-button {
   background-color: #ff4d4d;
   color: white;
-  margin-right: 10px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  margin-left: 10px;
 }
 
 .delete-button:hover {
   background-color: #cc0000;
+  transform: scale(1.05);
+
 }
 
 /* Edit button styling */
 .edit-button {
   background-color: #007bff;
   color: white;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
 .edit-button:hover {
   background-color: #0056b3;
+  transform: scale(1.05);
+}
+
+/* FontAwesome icon styling */
+.fa-solid {
+  font-size: 1.2em;
 }
 
 /* Post actions (e.g., delete post) */
@@ -384,6 +439,7 @@ button {
   cursor: pointer;
   font-size: 1rem;
   transition: background-color 0.3s ease;
+  margin-left: 10px;
 }
 
 .delete-post-button:hover {
@@ -592,4 +648,109 @@ button {
 .arrowBack:hover {
   background-color: #e0e0e0;
 }
+/*likes*/
+.likes-section button {
+  background-color: transparent;
+  border: none;
+  color: #333;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.likes-section button.liked {
+  color: #ff4d4d;
+}
+
+.likes-section button:hover {
+  color: #ff4d4d;
+}
+
+.likes-section {
+  position: relative;
+  display: inline-block;
+}
+
+.like-btn button {
+  position: relative;
+  background-color: transparent;
+  border: none;
+  color: #333;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 5px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.like-btn button.liked {
+  color: #e74c3c;
+}
+
+.like-btn button:hover {
+  background-color: #f2f2f2;
+}
+
+.like-btn button .fa-heart {
+  margin-right: 6px;
+  transition: transform 0.3s ease;
+}
+
+.like-btn button:hover .fa-heart {
+  transform: scale(1.2);
+}
+
+.liked-users-box {
+  display: none;
+  position: absolute;
+  top: 120%; /* Adjusted to avoid overlapping */
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  padding: 12px 16px;
+  width: 220px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  z-index: 1000;
+}
+
+ button:hover .liked-users-box {
+  display: block;
+  opacity: 1;
+  visibility: visible;
+}
+
+.liked-users-box h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: #666;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.liked-users-box ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.liked-users-box ul li {
+  margin: 6px 0;
+  font-size: 14px;
+  color: #444;
+  transition: color 0.3s ease;
+}
+
+.liked-users-box ul li:hover {
+  color: #e74c3c;
+}
+
+
 </style>

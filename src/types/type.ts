@@ -21,6 +21,11 @@ export interface Register{
     User:User;
   }
   
+  export interface like {
+    id:number;
+    name:string;
+  }
+
   export interface PostList {
     id: number;
     title: string;
@@ -35,6 +40,9 @@ export interface Register{
     image:string;
     image_thumb:string;
     last_comment:last_comment;
+    likes_count:number;
+    liked_by_user:boolean;
+    likes:like[];
   }
   
 

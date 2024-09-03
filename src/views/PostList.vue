@@ -6,6 +6,7 @@ import Notification from '@/components/Notification.vue';
 import Popup from '@/components/Popup.vue';
 import axios from 'axios';
 import type { PostList } from '@/types/type';
+import type ts from 'typescript';
 
 const showNotification = ref(false);
 const notificationMessage = ref('');
@@ -38,7 +39,7 @@ const listArticles = async (page: number = 1, sort: string = 'latest', search: s
       params: {
         page,
         sort: sort === 'latest' ? 'desc' : 'asc',
-        search: search
+        search
       }
     });
 
@@ -53,6 +54,7 @@ const listArticles = async (page: number = 1, sort: string = 'latest', search: s
       LatestComment: article.last_comment?.content,
       userId:article.user.id,
       LastCommentAuthor: article.last_comment?.User?.name ,
+      LikeCount:article.likes_count,
     }));
 
     currentPage.value = response.data.meta.current_page;
@@ -70,7 +72,7 @@ const listArticles = async (page: number = 1, sort: string = 'latest', search: s
 const goToPage = async (page: number) => {
   try {
     // Update the articles list for the selected page
-    await listArticles(page, sortOption.value, searchTerm.value);
+    await listArticles(page, sortOption.value);
     
     // Scroll to the top of the page
     window.scrollTo({
@@ -94,17 +96,18 @@ onMounted(() => {
 const handleSortChange = (event: Event) => {
   const target = event.target as HTMLSelectElement;
   sortOption.value = target.value;
-  listArticles(currentPage.value, target.value, searchTerm.value);
+  listArticles(currentPage.value, target.value);
 };
+
+
+
+let searchTimeout: number;
 watch(searchTerm, (newValue) => {
-  listArticles(currentPage.value, sortOption.value, newValue);
+  clearTimeout(searchTimeout);
+  searchTimeout = window.setTimeout(() => {
+    listArticles(currentPage.value, sortOption.value, newValue);
+  }, 500); // Debounce delay in milliseconds
 });
-
-const handleSearchChange = () => {
-  currentPage.value = 1;
-  listArticles(currentPage.value, sortOption.value, searchTerm.value);
-};
-
 
 const filteredArticles = computed(() => {
   const term = searchTerm.value.toLowerCase();
@@ -133,7 +136,6 @@ const filteredArticles = computed(() => {
       type="text"
       placeholder="Search articles..."
       class="search-input"
-      @input="handleSearchChange"
     />
     
     </div>
@@ -179,12 +181,18 @@ const filteredArticles = computed(() => {
                   </div>
                 </div>
                 <div class="blog-comments">
-                  {{ article.commentCount }} <i class="fa-solid fa-comment"></i>
+                  <span class="comment-count">
+                    <i class="fa-solid fa-comment"></i> {{ article.commentCount }}
+                  </span>
+                  <span class="like-count">
+                    <i class="fa-solid fa-heart"></i> {{ article.LikeCount }}
+                  </span>
                 </div>
+                
               </div>
             </div>
 
-            <div class="latest-comment">
+            <div v-if="article.LatestComment" class="latest-comment">
               <div class="comment-bubble">
                 <div class="comment-avatar">
                   <img src="../assets/images/b1.jpg" alt="User Avatar" />
@@ -392,14 +400,41 @@ ul {
 .blog-comments {
   display: flex;
   align-items: center;
+  gap: 20px;
   font-size: 0.9rem;
   color: #595959;
 }
 
 .blog-comments i {
-  margin-left: 10px;
+  margin-right: 5px;
   color: #007bff;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
+}
+
+.comment-count,
+.like-count {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: bold;
+  color: #252525;
+  background-color: #f4f4f4;
+  padding: 5px 10px;
+  border-radius: 20px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.comment-count:hover,
+.like-count:hover {
+  background-color: #e0e0e0;
+  transform: scale(1.05);
+}
+
+.comment-count i{
+  color:#007bff;
+}
+.like-count i {
+  color: #ff4757; /* Updated color for the heart icon */
 }
 
 .latest-comment {
