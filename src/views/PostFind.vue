@@ -2,13 +2,34 @@
   <section class="post-details-container">
     <!-- Notification Component for Confirmation -->
     <Notification v-if="showConfirmation" :message="confirmationMessage" :hasConfirm="true" @confirm="handleConfirmation(true)" @cancel="handleConfirmation(false)" />
-    <div class="arrowBack" @click="goBack"> <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> 
+    
+    <div class="arrowBack" @click="goBack"> 
+      <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> 
     </div>
+    
     <div v-if="post" class="post-details">
-      <h1 v-if="!isEditing" class="post-title">{{ post.title }}</h1>
+      <div class="post-header">
+        <h1 v-if="!isEditing" class="post-title">{{ post.title }}</h1>
+        <div class="likes-section">
+          <button @click="toggleLike" :class="{'liked': post.liked_by_user}" class="like-btn">
+            <i class="fa-solid fa-heart" aria-hidden="true"></i>
+            {{ post.likes_count }} Likes
+            <div class="liked-users-box" v-if="post.likes && post.likes.length ">
+              <h3>Liked by:</h3>
+              <ul>
+                <li v-for="like in post.likes" :key="like.id">
+                  {{ like.name }}
+                </li>
+              </ul>
+            </div>
+          </button>
+        </div>
+      </div>
+      
       <div class="post-image" v-if="post.image && !isEditing">
         <img :src="post.image" alt="Post Image" />
       </div>
+
       <!-- Edit form -->
       <div v-if="isEditing" class="edit-form">
         <input v-model="post.title" type="text" class="edit-title" />
@@ -38,8 +59,12 @@
 
         <!-- Show edit button if the user is the post owner -->
         <div v-if="isPostOwner" class="post-actions">
-          <button @click="isEditing = true" class="edit-post-button">          <i class="fa-solid fa-pen"></i></button>
-          <button @click="deletePost" class="delete-post-button">          <i class="fa-solid fa-trash"></i></button>
+          <button @click="isEditing = true" class="edit-post-button">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+          <button @click="deletePost" class="delete-post-button">
+            <i class="fa-solid fa-trash"></i>
+          </button>
         </div>
         
         <!-- Comment form -->
@@ -47,23 +72,6 @@
           <textarea v-model="newComment" class="new-comment" placeholder="Add a comment"></textarea>
           <button @click="addComment" class="comment-button">Add Comment</button>
         </div>
-           <!-- Likes Section -->
-            <div class="likes-section">
-              <button @click="toggleLike" :class="{'liked': post.liked_by_user}" class="like-btn">
-                <i class="fa-solid fa-heart" aria-hidden="true"></i>
-                {{ post.likes_count }} Likes
-                <div class="liked-users-box" v-if="post.likes && post.likes.length ">
-                  <h3>Liked by:</h3>
-                  <ul>
-                    <li v-for="like in post.likes" :key="like.id">
-                      {{ like.name }}
-                    </li>
-                  </ul>
-                </div>
-              </button>
-            </div>
-            
-
 
         <div class="comments">
           <h3>Comments</h3>
@@ -81,8 +89,12 @@
 
               <!-- Allow editing and deleting if the comment belongs to the current user -->
               <div v-if="isCommentOwner(comment.user.id)" class="comment-actions">
-                <button @click="editComment(comment.id, comment.content)" class="edit-button"> <i class="fa-solid fa-pen"></i></button>
-                <button @click="deleteComment(comment.id)" class="delete-button"><i class="fa-solid fa-trash"></i></button>
+                <button @click="editComment(comment.id, comment.content)" class="edit-button"> 
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+                <button @click="deleteComment(comment.id)" class="delete-button">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
               </div>
             </div>
           </div>
@@ -91,7 +103,6 @@
     </div>
   </section>
 </template>
-
 
   
   
@@ -152,6 +163,7 @@ const toggleLike = async () => {
         post.value.liked_by_user = true;
         post.value.likes_count += 1;
       }
+      await fetchPostDetails();
     } catch (error) {
       console.error('Error toggling like:', error);
     }
@@ -653,7 +665,7 @@ button {
   background-color: transparent;
   border: none;
   color: #333;
-  font-size: 1rem;
+  font-size: 1.5rem;
   cursor: pointer;
   transition: color 0.3s ease;
 }
@@ -718,6 +730,7 @@ button {
   visibility: hidden;
   transition: opacity 0.3s ease, visibility 0.3s ease;
   z-index: 1000;
+  border-radius: 20px;
 }
 
  button:hover .liked-users-box {
