@@ -1,62 +1,64 @@
-export interface Register{
-    email:string;
-    name:string;
-    password:string;
-    password_confirmation:string;
-  }
-  export interface Login{
-    email:string;
-    password:string;
-  }
+export interface Register {
+  email: string;
+  name: string;
+  password: string;
+  password_confirmation: string;
+}
 
-  export interface User {
-    id: number;
-    name: string;
-  }
-  export interface last_comment{
-    id: number;
-    content: string;
-    created_at: string;
-    created_at_readable: string;
-    User:User;
-  }
-  
-  export interface like {
-    id:number;
-    name:string;
-  }
+export interface Login {
+  email: string;
+  password: string;
+}
 
-  export interface PostList {
-    id: number;
-    title: string;
-    slug: string;
-    content: string;
-    is_published: boolean;
-    created_at: string;
-    updated_at: string;
-    user: User; // Associated user (author) of the post
-    comments: any[];
-    comments_count:number; // Adjust this type based on the structure of your comments
-    image:string;
-    image_thumb:string;
-    last_comment:last_comment;
-    likes_count:number;
-    liked_by_user:boolean;
-    likes:like[];
-  }
-  
+export interface User {
+  id: number;
+  name: string;
+}
+
+export interface LastComment {
+  id: number;
+  content: string;
+  created_at: string;
+  created_at_readable: string;
+  user: User;
+}
+
+export interface Like {
+  id: number;
+  name: string;
+}
+
+export interface PostList {
+  id: number;
+  title: string;
+  slug: string;
+  content: string;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+  user: User; // Associated user (author) of the post
+  comments: Comment[];
+  comments_count: number;
+  image: string;
+  image_thumb: string;
+  last_comment: LastComment;
+  likes_count: number;
+  liked_by_user: boolean;
+  likes: Like[];
+}
 
 export interface PostArticle {
   title: string;
   content: string;
-
 }
+
 export interface Comment {
-  content:string;
-  user:User;
-  created_at_readable:string;
+  id: number;
+  content: string;
+  user: User;
+  created_at: string;
+  created_at_readable: string;
 }
-
 
 export type Post = {
   title: string;

@@ -7,7 +7,7 @@ import Popup from '@/components/Popup.vue';
 import axios from 'axios';
 import type { PostList } from '@/types/type';
 import type ts from 'typescript';
-
+// import { toggleLike } from '@/utils/service'
 const showNotification = ref(false);
 const notificationMessage = ref('');
 const showPopup = ref(false);
@@ -53,8 +53,9 @@ const listArticles = async (page: number = 1, sort: string = 'latest', search: s
       Image: article.image_thumb,
       LatestComment: article.last_comment?.content,
       userId:article.user.id,
-      LastCommentAuthor: article.last_comment?.User?.name ,
-      LikeCount:article.likes_count,
+      LastCommentAuthor: article.last_comment?.user?.name ,
+      likes_count:article.likes_count,
+      liked_by_user:article.liked_by_user,
     }));
 
     currentPage.value = response.data.meta.current_page;
@@ -119,6 +120,34 @@ const filteredArticles = computed(() => {
 });
 
 
+const toggleLike = async (post: { slug: string; liked_by_user: boolean; likes_count: number }) => {
+  if (post) {
+    // Optimistically update the like state
+    post.liked_by_user = !post.liked_by_user;
+    post.likes_count += post.liked_by_user ? 1 : -1;
+
+    try {
+      // Send request to the server to toggle the like
+      const response = await axios.post(`${VITE_API_URL}/posts/like/${post.slug}`);
+
+      // Check if the response status is not OK
+      if (response.status !== 200) {
+        // Revert the like state if there's an error
+        post.liked_by_user = !post.liked_by_user;
+        post.likes_count += post.liked_by_user ? -1 : 1;
+        console.error('Error toggling like: Unexpected response status', response.status);
+      }
+    } catch (error) {
+      // Revert the like state if there's an error
+      post.liked_by_user = !post.liked_by_user;
+      post.likes_count += post.liked_by_user ? -1 : 1;
+      console.error('Error toggling like:', error);
+    }
+  }
+};
+
+
+
 
 </script>
 
@@ -132,12 +161,11 @@ const filteredArticles = computed(() => {
     <!-- Search Input -->
     <div class="search-container">
       <input
-      v-model="searchTerm"
-      type="text"
-      placeholder="Search articles..."
-      class="search-input"
-    />
-    
+        v-model="searchTerm"
+        type="text"
+        placeholder="Search articles..."
+        class="search-input"
+      />
     </div>
     <div class="sort-container">
       <label for="sort">Sort by:</label>
@@ -151,13 +179,8 @@ const filteredArticles = computed(() => {
     <div class="blog-container">
       <!-- Main blog cards -->
       <div class="blog-box-container">
-        <!-- If no articles are found, display a message -->
-       
-
-        <!-- Loop through filtered articles and create blog-box for each -->
-        <div  v-for="(article, index) in filteredArticles" :key="index" class="blog-box">
+        <div v-for="(article, index) in filteredArticles" :key="index" class="blog-box">
           <div class="blog-box-img">
-            <!-- Conditionally display image or placeholder -->
             <img v-if="article.Image" :src="article.Image" alt="Article thumbnail" />
             <img v-else src="../assets/images/b2.jpg" alt="Article thumbnail placeholder" />
           </div>
@@ -184,11 +207,14 @@ const filteredArticles = computed(() => {
                   <span class="comment-count">
                     <i class="fa-solid fa-comment"></i> {{ article.commentCount }}
                   </span>
-                  <span class="like-count">
-                    <i class="fa-solid fa-heart"></i> {{ article.LikeCount }}
+                  <span class="like-count" @click="toggleLike(article)">
+                    <i v-if="article.liked_by_user" class="fa-solid fa-heart"></i>
+                    <i v-else class="fa-regular fa-heart"></i>
+                    {{ article.likes_count }}
                   </span>
+                  
+                  
                 </div>
-                
               </div>
             </div>
 
@@ -200,13 +226,12 @@ const filteredArticles = computed(() => {
                 <div class="comment-content">
                   <strong>Latest Comment:</strong>
                   <p>{{ article.LatestComment || 'No comments yet' }}</p>
-                  <p>{{article.LastCommentAuthor || ' '}}</p>
-                </div>
+                  <p>- {{ article.LastCommentAuthor || 'Unknown' }}</p>                </div>
               </div>
             </div>
           </div>
           <button @click.prevent="viewArticle(article.slug)" class="ReadBtn">Read More</button>
-        </div><!-- End of blog-box -->
+        </div>
       </div>
     </div>
 
