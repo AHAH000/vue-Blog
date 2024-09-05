@@ -2,27 +2,32 @@
   <section class="post-details-container">
     <!-- Notification Component for Confirmation -->
     <Notification v-if="showConfirmation" :message="confirmationMessage" :hasConfirm="true" @confirm="handleConfirmation(true)" @cancel="handleConfirmation(false)" />
-    
+
     <div class="arrowBack" @click="goBack"> 
       <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> 
     </div>
-    
+
     <div v-if="post" class="post-details">
       <div class="post-header">
         <h1 v-if="!isEditing" class="post-title">{{ post.title }}</h1>
-        <div class="likes-section">
+
+        <div class="likes-section" v-if="!isEditing">
+          <!-- Toggle like when heart is clicked -->
           <button @click="toggleLike" :class="{'liked': post.liked_by_user}" class="like-btn">
             <i class="fa-solid fa-heart" aria-hidden="true"></i>
-            {{ post.likes_count }} Likes
-            <div class="liked-users-box" v-if="post.likes && post.likes.length ">
-              <h3>Liked by:</h3>
-              <ul>
-                <li v-for="like in post.likes" :key="like.id">
-                  {{ like.name }}
-                </li>
-              </ul>
-            </div>
           </button>
+
+          <!-- Show pop-up of liked users when likes count is clicked -->
+          <button @click="showLikedUsersPopup = true" class="likes-count-btn">
+            {{ post.likes_count }} Likes
+          </button>
+
+          <!-- Liked users pop-up -->
+          <LikedUsersPopup
+            :show="showLikedUsersPopup"
+            :users="post.likes"
+            @close="showLikedUsersPopup = false"
+          />
         </div>
       </div>
       
@@ -103,16 +108,16 @@
     </div>
   </section>
 </template>
-
-  
   
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
-import { isAuthenticated, user, getUser } from '@/auth';
+import { isAuthenticated, user } from '@/auth';
 import type { PostList } from '@/types/type';
 import Notification from '@/components/Notification.vue';
+import LikedUsersPopup from '@/components/LikedUsersPopup.vue'; // Import the new component
+
 const route = useRoute();
 const router = useRouter();
 const VITE_API_URL = 'https://interns-blog.nafistech.com/api';
@@ -150,12 +155,10 @@ const fetchPostDetails = async () => {
   }
 };
 
-// Function to  like status
 const toggleLike = async () => {
   if (post.value) {
     try {
       await axios.post(`${VITE_API_URL}/posts/like/${post.value.slug}`);
-      // Toggle liked_by_user and update likes_count based on the current state
       if (post.value.liked_by_user) {
         post.value.liked_by_user = false;
         post.value.likes_count -= 1;
@@ -169,7 +172,6 @@ const toggleLike = async () => {
     }
   }
 };
-
 
 const addComment = async () => {
   if (post.value && newComment.value.trim()) {
@@ -293,7 +295,11 @@ onMounted(() => {
 const goBack = () => {
   router.back();
 };
+
+const showLikedUsersPopup = ref(false);
+
 </script>
+
 
 
   
@@ -362,7 +368,7 @@ const goBack = () => {
 
 /* Content of a comment */
 .comment-content {
-  font-size: 1rem;
+  font-size: 1.3rem;
   color: #333;
   margin-bottom: 5px;
 }
@@ -387,7 +393,7 @@ const goBack = () => {
 
 /* Buttons styling */
 button {
-  padding: 5px 10px;
+  padding: 5px 5px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
@@ -457,12 +463,44 @@ button {
 .delete-post-button:hover {
   background-color: #cc0000;
 }
+/* Edit content styling */
+.edit-content {
+  width: 100%; /* Adjust width as needed */
+  height: 200px; /* Adjust height as needed */
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  line-height: 1.5;
+  resize: vertical; /* Allows users to resize the textarea vertically */
+}
+
 
 /* Edit form styling */
 .edit-form {
   display: flex;
   flex-direction: column;
   margin-top: 20px;
+}
+.edit-title {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+}
+
+/* Edit content styling */
+.edit-content {
+  width: 100%; /* Adjust width as needed */
+  height: 200px; /* Adjust height as needed */
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  line-height: 1.5;
+  resize: vertical; /* Allows users to resize the textarea vertically */
 }
 
 /* Image upload styling */
@@ -602,6 +640,7 @@ button {
   margin-bottom: 10px;
   height: 80px;
   resize: vertical;
+  font-size: 1.2rem;
 }
 
 /* Comment button styling */
@@ -687,7 +726,8 @@ button {
   position: relative;
   background-color: transparent;
   border: none;
-  color: #333;
+  color:transparent;
+  border-color:#e74c3c ;
   font-size: 16px;
   cursor: pointer;
   display: flex;
@@ -713,6 +753,9 @@ button {
 .like-btn button:hover .fa-heart {
   transform: scale(1.2);
 }
+/* Button for liking posts */
+
+
 
 .liked-users-box {
   display: none;

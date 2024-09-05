@@ -433,7 +433,7 @@ ul {
 .blog-comments i {
   margin-right: 5px;
   color: #007bff;
-  font-size: 1.2rem;
+  font-size: 1.8rem;
 }
 
 .comment-count,
