@@ -122,7 +122,7 @@ const filteredArticles = computed(() => {
 
 const toggleLike = async (post: { slug: string; liked_by_user: boolean; likes_count: number }) => {
   if (post) {
-    // Optimistically update the like state
+    //  update the like state
     post.liked_by_user = !post.liked_by_user;
     post.likes_count += post.liked_by_user ? 1 : -1;
 
@@ -138,7 +138,7 @@ const toggleLike = async (post: { slug: string; liked_by_user: boolean; likes_co
         console.error('Error toggling like: Unexpected response status', response.status);
       }
     } catch (error) {
-      // Revert the like state if there's an error
+      // return the like state if there's an error
       post.liked_by_user = !post.liked_by_user;
       post.likes_count += post.liked_by_user ? -1 : 1;
       console.error('Error toggling like:', error);
