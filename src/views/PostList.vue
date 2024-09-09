@@ -122,7 +122,7 @@ const filteredArticles = computed(() => {
 
 const toggleLike = async (post: { slug: string; liked_by_user: boolean; likes_count: number }) => {
   if (post) {
-    //  update the like state
+    //update the like state
     post.liked_by_user = !post.liked_by_user;
     post.likes_count += post.liked_by_user ? 1 : -1;
 

@@ -19,8 +19,8 @@ const close = () => {
   <transition name="fade">
     <div v-if="show" class="liked-users-popup">
       <div class="popup-content">
-        <h3>Liked by:</h3>
-        <ul>
+<h3>{{ users.length > 0 ? 'Liked by:' : 'Not Liked Yet' }}</h3>
+        <ul >
           <li v-for="user in users" :key="user.id">
             {{ user.name }}
           </li>
