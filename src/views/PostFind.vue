@@ -1,28 +1,34 @@
 <template>
   <section class="post-details-container">
     <!-- Notification Component for Confirmation -->
-    <Notification v-if="showConfirmation" :message="confirmationMessage" :hasConfirm="true" @confirm="handleConfirmation(true)" @cancel="handleConfirmation(false)" />
+    <Notification
+      v-if="showConfirmation"
+      :message="confirmationMessage"
+      :hasConfirm="true"
+      @confirm="handleConfirmation(true)"
+      @cancel="handleConfirmation(false)"
+    />
 
-    <div class="arrowBack" @click="goBack"> 
-      <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> 
+    <div class="arrowBack" @click="goBack">
+      <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
     </div>
 
     <div v-if="post" class="post-details">
       <div class="post-header">
         <h1 v-if="!isEditing" class="post-title">{{ post.title }}</h1>
 
+        <!-- Likes Section -->
         <div class="likes-section" v-if="!isEditing">
-          <!-- Toggle like when heart is clicked -->
-          <button @click="toggleLike" :class="{'liked': post.liked_by_user}" class="like-btn">
+          <button
+            @click="toggleLike"
+            :class="{ 'liked': post.liked_by_user }"
+            class="like-btn"
+          >
             <i class="fa-solid fa-heart" aria-hidden="true"></i>
           </button>
-
-          <!-- Show pop-up of liked users when likes count is clicked -->
           <button @click="showLikedUsersPopup = true" class="likes-count-btn">
             {{ post.likes_count }} Likes
           </button>
-
-          <!-- Liked users pop-up -->
           <LikedUsersPopup
             :show="showLikedUsersPopup"
             :users="post.likes"
@@ -30,17 +36,15 @@
           />
         </div>
       </div>
-      
+
       <div class="post-image" v-if="post.image && !isEditing">
         <img :src="post.image" alt="Post Image" />
       </div>
 
-      <!-- Edit form -->
       <div v-if="isEditing" class="edit-form">
         <input v-model="post.title" type="text" class="edit-title" />
         <textarea v-model="post.content" class="edit-content"></textarea>
-        
-        <!-- Image upload form -->
+
         <div class="image-upload">
           <label for="imageUpload">Upload New Image:</label>
           <input type="file" id="imageUpload" @change="onFileChange" />
@@ -53,8 +57,7 @@
         <button @click="editPost" class="save-button">Save</button>
         <button @click="isEditing = false" class="cancel-button">Cancel</button>
       </div>
-      
-      <!-- Display post details when not editing -->
+
       <div v-else>
         <div class="post-content">{{ post.content }}</div>
         <div class="post-meta">
@@ -62,7 +65,6 @@
           <span class="date">Date: {{ new Date(post.created_at).toLocaleDateString() }}</span>
         </div>
 
-        <!-- Show edit button if the user is the post owner -->
         <div v-if="isPostOwner" class="post-actions">
           <button @click="isEditing = true" class="edit-post-button">
             <i class="fa-solid fa-pen"></i>
@@ -71,8 +73,7 @@
             <i class="fa-solid fa-trash"></i>
           </button>
         </div>
-        
-        <!-- Comment form -->
+
         <div v-if="isAuthenticated" class="comment-form">
           <textarea v-model="newComment" class="new-comment" placeholder="Add a comment"></textarea>
           <button @click="addComment" class="comment-button">Add Comment</button>
@@ -80,8 +81,11 @@
 
         <div class="comments">
           <h3>Comments</h3>
-          <div v-for="(comment, index) in post.comments.slice().reverse()" :key="index" class="comment">
-            <!-- Edit Comment Form -->
+          <div
+            v-for="(comment, index) in post.comments.slice().reverse()"
+            :key="index"
+            class="comment"
+          >
             <div v-if="commentBeingEdited === comment.id">
               <input v-model="editCommentContent" type="text" class="edit-comment-input" />
               <button @click="saveCommentEdit(comment.id)" class="save-button">Save</button>
@@ -92,14 +96,105 @@
               <small class="comment-author">{{ comment.user.name }}</small>
               <small class="comment-date">{{ comment.created_at_readable }}</small>
 
-              <!-- Allow editing and deleting if the comment belongs to the current user -->
               <div v-if="isCommentOwner(comment.user.id)" class="comment-actions">
-                <button @click="editComment(comment.id, comment.content)" class="edit-button"> 
+                <button @click="editComment(comment.id, comment.content)" class="edit-button">
                   <i class="fa-solid fa-pen"></i>
                 </button>
                 <button @click="deleteComment(comment.id)" class="delete-button">
                   <i class="fa-solid fa-trash"></i>
                 </button>
+              </div>
+
+              <div v-if="isAuthenticated">
+                <button @click="toggleReplyForm(comment.id)" class="reply-button">
+                  <i class="fa-solid fa-reply"></i>
+                </button>
+              </div>
+
+              <div v-if="isReplyingToComment === comment.id" class="reply-form">
+                <textarea v-model="replyContent" class="new-reply" placeholder="Reply to this comment"></textarea>
+                <button @click="replyToComment(comment.id)" class="reply-button">Submit Reply</button>
+                <button @click="isReplyingToComment = null" class="cancel-button">Cancel</button>
+              </div>
+
+              <div v-if="comment.children.length" class="replies">
+                <div
+                  v-for="(reply, rIndex) in comment.children"
+                  :key="rIndex"
+                  class="reply"
+                >
+                  <div v-if="replyBeingEdited === reply.id">
+                    <input v-model="editReplyContent" type="text" class="edit-reply-input" />
+                    <button @click="saveReplyEdit(reply.id)" class="save-button">Save</button>
+                    <button @click="replyBeingEdited = null" class="cancel-button">Cancel</button>
+                  </div>
+                  <div v-else>
+                    <p class="reply-content">{{ reply.content }}</p>
+                    <small class="reply-author">{{ reply.user.name }}</small>
+                    <small class="reply-date">{{ reply.created_at_readable }}</small>
+
+                    <div v-if="isCommentOwner(reply.user.id)" class="reply-actions">
+                      <button @click="editReply(reply.id, reply.content)" class="edit-button">
+                        <i class="fa-solid fa-pen"></i>
+                      </button>
+                      <button @click="deleteReply(reply.id)" class="delete-button">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                    </div>
+
+                    <div v-if="isAuthenticated">
+                      <button @click="toggleReplyForm(reply.id)" class="reply-button">
+                        <i class="fa-solid fa-reply"></i>
+                      </button>
+                    </div>
+
+                    <div v-if="isReplyingToComment === reply.id" class="reply-form">
+                      <textarea v-model="replyContent" class="new-reply" placeholder="Reply to this reply"></textarea>
+                      <button @click="replyToComment(reply.id)" class="reply-button">Submit Reply</button>
+                      <button @click="isReplyingToComment = null" class="cancel-button">Cancel</button>
+                    </div>
+
+                    <div v-if="reply.children.length" class="replies">
+                      <div
+                        v-for="(nestedReply, nrIndex) in reply.children"
+                        :key="nrIndex"
+                        class="reply"
+                      >
+                        <div v-if="replyBeingEdited === nestedReply.id">
+                          <input v-model="editReplyContent" type="text" class="edit-reply-input" />
+                          <button @click="saveReplyEdit(nestedReply.id)" class="save-button">Save</button>
+                          <button @click="replyBeingEdited = null" class="cancel-button">Cancel</button>
+                        </div>
+                        <div v-else>
+                          <p class="reply-content">{{ nestedReply.content }}</p>
+                          <small class="reply-author">{{ nestedReply.user.name }}</small>
+                          <small class="reply-date">{{ nestedReply.created_at_readable }}</small>
+
+                          <div v-if="isCommentOwner(nestedReply.user.id)" class="reply-actions">
+                            <button @click="editReply(nestedReply.id, nestedReply.content)" class="edit-button">
+                              <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button @click="deleteReply(nestedReply.id)" class="delete-button">
+                              <i class="fa-solid fa-trash"></i>
+                            </button>
+                          </div>
+
+                          <div v-if="isAuthenticated">
+                            <button @click="toggleReplyForm(nestedReply.id)" class="reply-button">
+                              <i class="fa-solid fa-reply"></i>
+                            </button>
+                          </div>
+
+                          <div v-if="isReplyingToComment === nestedReply.id" class="reply-form">
+                            <textarea v-model="replyContent" class="new-reply" placeholder="Reply to this reply"></textarea>
+                            <button @click="replyToComment(nestedReply.id)" class="reply-button">Submit Reply</button>
+                            <button @click="isReplyingToComment = null" class="cancel-button">Cancel</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -108,7 +203,7 @@
     </div>
   </section>
 </template>
-  
+
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -117,17 +212,21 @@ import { isAuthenticated, user } from '@/auth';
 import type { PostList } from '@/types/type';
 import Notification from '@/components/Notification.vue';
 import LikedUsersPopup from '@/components/LikedUsersPopup.vue'; // Import the new component
-
 const route = useRoute();
 const router = useRouter();
 const VITE_API_URL = 'https://interns-blog.nafistech.com/api';
 const post = ref<PostList | null>(null);
+
 const isEditing = ref(false);
 const newComment = ref('');
 const showNotification = ref(false);
 const notificationMessage = ref('');
 const showConfirmation = ref(false);
 const confirmationMessage = ref('');
+const replyContent = ref('');
+const editReplyContent = ref('');
+const replyBeingEdited = ref<number | null>(null);
+const isReplyingToComment = ref<number | null>(null);
 const handleConfirmation = (confirmed: boolean) => {
   if (confirmed && onConfirm.value) {
     onConfirm.value();
@@ -185,6 +284,65 @@ const addComment = async () => {
       console.error('Error adding comment:', error);
     }
   }
+};
+const replyToComment = async (parentId: number) => {
+  if (post.value && replyContent.value.trim()) {
+    try {
+      await axios.post(`${VITE_API_URL}/posts/${post.value.slug}/comments`, {
+        content: replyContent.value,
+        parent_id: parentId
+      });
+      replyContent.value = '';
+      isReplyingToComment.value = null; // Hide the reply form after submitting
+      fetchPostDetails(); // Reload the post details to get the updated replies
+    } catch (error) {
+      console.error('Error adding reply:', error);
+    }
+  }
+};
+const toggleReplyForm = (commentId: number) => {
+  isReplyingToComment.value = isReplyingToComment.value === commentId ? null : commentId;
+};
+const editReply = (replyId: number, currentContent: string) => {
+  replyBeingEdited.value = replyId;
+  editReplyContent.value = currentContent;
+};
+
+const saveReplyEdit = async (replyId: number) => {
+  try {
+    const postSlug = post.value?.slug;
+    if (!postSlug) throw new Error('Post slug is not available');
+    await axios.patch(`${VITE_API_URL}/posts/${postSlug}/comments/${replyId}`, {
+      content: editReplyContent.value
+    });
+    if (post.value) {
+      const comment = post.value.comments.find(comment => 
+        comment.children.some(reply => reply.id === replyId)
+      );
+      if (comment) {
+        const reply = comment.children.find(reply => reply.id === replyId);
+        if (reply) reply.content = editReplyContent.value;
+      }
+    }
+    replyBeingEdited.value = null;
+    editReplyContent.value = '';
+  } catch (error) {
+    console.error('Error editing reply:', error);
+    alert('Failed to edit the reply. Please try again.');
+  }
+};
+
+const deleteReply = async (replyId: number) => {
+  showConfirmDialog('Are you sure you want to delete this reply?', async () => {
+    try {
+      const postSlug = post.value?.slug;
+      if (!postSlug) throw new Error('Post slug is not available');
+      await axios.delete(`${VITE_API_URL}/posts/${postSlug}/comments/${replyId}`);
+      fetchPostDetails();
+    } catch (error) {
+      console.error('Error deleting reply:', error);
+    }
+  });
 };
 
 const editComment = (commentId: number, currentContent: string) => {
@@ -300,8 +458,6 @@ const showLikedUsersPopup = ref(false);
 
 </script>
 
-
-
   
 
 <style scoped>
@@ -383,7 +539,7 @@ const showLikedUsersPopup = ref(false);
 .comment-date {
   font-size: 0.9rem;
   color: black;
-  margin-left: 605px;
+  margin-left: 550px;
 }
 
 /* Comment actions (e.g., edit, delete) */
@@ -393,43 +549,30 @@ const showLikedUsersPopup = ref(false);
 
 /* Buttons styling */
 button {
-  padding: 5px 5px;
+  padding: 10px 15px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
   font-size: 0.9rem;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
 /* Delete button styling */
 .delete-button {
   background-color: #ff4d4d;
   color: white;
-  padding: 5px 10px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s ease, transform 0.3s ease;
   margin-left: 10px;
 }
 
 .delete-button:hover {
   background-color: #cc0000;
   transform: scale(1.05);
-
 }
 
 /* Edit button styling */
 .edit-button {
   background-color: #007bff;
   color: white;
-  padding: 5px 10px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
 .edit-button:hover {
@@ -451,30 +594,12 @@ button {
 .delete-post-button {
   background-color: #ff4d4d;
   color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s ease;
   margin-left: 10px;
 }
 
 .delete-post-button:hover {
   background-color: #cc0000;
 }
-/* Edit content styling */
-.edit-content {
-  width: 100%; /* Adjust width as needed */
-  height: 200px; /* Adjust height as needed */
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
-  line-height: 1.5;
-  resize: vertical; /* Allows users to resize the textarea vertically */
-}
-
 
 /* Edit form styling */
 .edit-form {
@@ -482,25 +607,23 @@ button {
   flex-direction: column;
   margin-top: 20px;
 }
-.edit-title {
+
+.edit-title,
+.edit-content {
   width: 100%;
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 8px;
+}
+
+.edit-title {
   font-size: 1.2rem;
   margin-bottom: 10px;
 }
 
-/* Edit content styling */
 .edit-content {
-  width: 100%; /* Adjust width as needed */
-  height: 200px; /* Adjust height as needed */
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
-  line-height: 1.5;
-  resize: vertical; /* Allows users to resize the textarea vertically */
+  height: 200px;
+  resize: vertical;
 }
 
 /* Image upload styling */
@@ -510,7 +633,6 @@ button {
   border: 2px dashed #007bff;
   border-radius: 12px;
   background-color: #f9f9f9;
-  position: relative;
   text-align: center;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   transition: border-color 0.3s ease, background-color 0.3s ease;
@@ -521,55 +643,25 @@ button {
   background-color: #e6f0ff;
 }
 
-.upload-label {
-  display: block;
-  font-size: 1.1rem;
-  color: #333;
-  margin-bottom: 0.75rem;
-}
-
-.file-input {
-  display: block;
-  margin: 0 auto;
-  padding: 0.75rem;
-  font-size: 1rem;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: border-color 0.3s ease, background-color 0.3s ease;
-}
-
-.file-input:focus {
-  border-color: #007bff;
-  background-color: #f0f8ff;
-  outline: none;
-}
-
 .image-preview {
   margin-top: 1rem;
   position: relative;
 }
 
-/* Image preview styling */
 .image-preview img {
   max-width: 100%;
   height: auto;
   border-radius: 8px;
 }
 
-/* Remove image button styling */
 .remove-image-button {
   position: absolute;
   top: 10px;
   right: 10px;
   background-color: #ff4d4d;
   color: white;
-  border: none;
-  padding: 0.5rem;
   border-radius: 50%;
   cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
 .remove-image-button:hover {
@@ -578,24 +670,14 @@ button {
 }
 
 /* Save and cancel buttons styling */
-.save-button, .cancel-button {
-  margin-top: 1rem;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s ease, transform 0.3s ease;
-}
-
 .save-button {
   background-color: #4caf50;
   color: white;
+  margin-top: 1rem;
 }
 
 .save-button:hover {
   background-color: #45a049;
-  transform: scale(1.05);
 }
 
 .cancel-button {
@@ -606,19 +688,12 @@ button {
 
 .cancel-button:hover {
   background-color: #e53935;
-  transform: scale(1.05);
 }
 
 /* Button to edit the post */
 .edit-post-button {
   background-color: #007bff;
   color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
 .edit-post-button:hover {
@@ -631,8 +706,8 @@ button {
   margin-top: 20px;
 }
 
-/* New comment textarea */
-.new-comment {
+.new-comment,
+.new-reply {
   width: 100%;
   padding: 10px;
   border-radius: 5px;
@@ -646,34 +721,102 @@ button {
 /* Comment button styling */
 .comment-button {
   padding: 10px 20px;
-  border: none;
   border-radius: 5px;
-  cursor: pointer;
-  font-size: 1rem;
   background-color: #007bff;
   color: white;
-  transition: background-color 0.3s ease;
 }
 
 .comment-button:hover {
   background-color: #0056b3;
 }
 
-/* Styling for editing comment content */
-.edit-comment-content {
-  width: 100%;
-  padding: 10px;
+/* Reply form styling */
+.reply-form {
+  margin-top: 10px;
+}
+
+.reply-button {
+  background-color: #007bff;
+  color: white;
   border-radius: 5px;
-  border: 1px solid #ddd;
+  margin-top: 10px;
+}
+
+.reply-button:hover {
+  background-color: #0056b3;
+}
+
+/* Nested replies */
+.replies {
+  padding-left: 20px;
+  border-left: 2px solid #ddd;
+}
+
+.reply {
+  border-bottom: 1px solid #eee;
+  padding: 10px 0;
+}
+
+.reply-content {
+  font-size: 1.2rem;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.reply-actions button {
+  background: none;
+  border: none;
+  color: #333;
+  cursor: pointer;
+  margin-right: 10px;
+  font-size: 1rem;
+}
+.reply-date{
+margin-left: 550px;
+}
+/* Arrow indicators for replies */
+.reply-arrow {
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid #ddd;
+  display: inline-block;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+.reply-indicator {
+  display: flex;
+  align-items: center;
   margin-bottom: 10px;
 }
 
-/* Edit comment input */
-.edit-comment-input {
-  margin-right: 10px;
-  padding: 10px;
-  width: 200px;
+.reply-indicator span {
+  font-size: 0.9rem;
+  color: #666;
+  margin-left: 5px;
 }
+
+/* Styling for nested replies */
+.replies {
+  padding-left: 30px; /* Increase padding for nested replies */
+  border-left: 2px solid #ddd;
+}
+
+/* Ensure that nested replies align well */
+.reply {
+  border-bottom: 1px solid #eee;
+  padding: 10px 0;
+  margin-left: 20px; /* Add margin for better readability */
+}
+
+.reply-content {
+  font-size: 1.2rem;
+  color: #333;
+  margin-bottom: 5px;
+}
+
 
 /* Arrow back button styling */
 .arrowBack {
@@ -699,7 +842,14 @@ button {
 .arrowBack:hover {
   background-color: #e0e0e0;
 }
-/*likes*/
+
+/* Likes section */
+.likes-section {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
 .likes-section button {
   background-color: transparent;
   border: none;
@@ -717,17 +867,12 @@ button {
   color: #ff4d4d;
 }
 
-.likes-section {
-  position: relative;
-  display: inline-block;
-}
-
 .like-btn button {
   position: relative;
   background-color: transparent;
   border: none;
-  color:transparent;
-  border-color:#e74c3c ;
+  color: transparent;
+  border-color: #e74c3c;
   font-size: 16px;
   cursor: pointer;
   display: flex;
@@ -753,19 +898,17 @@ button {
 .like-btn button:hover .fa-heart {
   transform: scale(1.2);
 }
-/* Button for liking posts */
 
-
-
+/* Liked users box */
 .liked-users-box {
   display: none;
   position: absolute;
-  top: 120%; /* Adjusted to avoid overlapping */
+  top: 120%;
   left: 50%;
   transform: translateX(-50%);
   background-color: #fff;
   border: 1px solid #ddd;
-  border-radius: 8px;
+  border-radius: 20px;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
   padding: 12px 16px;
   width: 220px;
@@ -773,10 +916,9 @@ button {
   visibility: hidden;
   transition: opacity 0.3s ease, visibility 0.3s ease;
   z-index: 1000;
-  border-radius: 20px;
 }
 
- button:hover .liked-users-box {
+.likes-section:hover .liked-users-box {
   display: block;
   opacity: 1;
   visibility: visible;
@@ -807,6 +949,7 @@ button {
 .liked-users-box ul li:hover {
   color: #e74c3c;
 }
-
-
 </style>
+
+
+

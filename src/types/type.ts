@@ -51,6 +51,14 @@ export interface PostArticle {
   title: string;
   content: string;
 }
+export interface children{
+id:number;
+content:string;
+created_at:string;
+created_at_readable: string;
+user:User;
+children:children[];
+}
 
 export interface Comment {
   id: number;
@@ -58,6 +66,7 @@ export interface Comment {
   user: User;
   created_at: string;
   created_at_readable: string;
+  children:Comment[];
 }
 
 export type Post = {
