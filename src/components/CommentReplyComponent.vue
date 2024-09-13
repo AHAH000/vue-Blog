@@ -1,37 +1,46 @@
 <template>
     <Notification
-    v-if="showConfirmation"
-    :message="confirmationMessage"
-    :hasConfirm="true"
-    @confirm="handleConfirmation(true)"
-    @cancel="handleConfirmation(false)"
-  />
+      v-if="showConfirmation"
+      :message="confirmationMessage"
+      :hasConfirm="true"
+      @confirm="handleConfirmation(true)"
+      @cancel="handleConfirmation(false)"
+    />
     <div class="replies">
+      <!-- Toggle Button to Show/Hide Replies -->
+      
+  
       <!-- Reply Content -->
       <div v-if="replyBeingEdited === reply.id">
         <input v-model="editReplyContent" type="text" class="edit-reply-input" />
         <button @click="saveReplyEdit(reply.id)" class="save-button">Save</button>
         <button @click="cancelReplyEdit" class="cancel-button">Cancel</button>
       </div>
-    
+  
       <div v-else>
         <p class="reply-content">{{ reply.content }}</p>
         <small class="reply-author">{{ reply.user.name }}</small>
         <small class="reply-date">{{ reply.created_at_readable }}</small>
-    
+  
         <!-- Actions for reply owner -->
         <div v-if="isReplyOwner(reply.user.id)" class="reply-actions">
           <button @click="editReply(reply.id, reply.content)" class="edit-button">
-            <i class="fa-solid fa-pen" ></i>
+            <i class="fa-solid fa-pen"></i>
           </button>
           <button @click="deleteReply(reply.id)" class="delete-button">
             <i class="fa-solid fa-trash"></i>
           </button>
         </div>
+       
   
         <!-- Reply Button -->
-        <button v-if="!showReplyForm" @click="toggleReplyForm" class="reply-button">              <i class="fa-solid fa-reply"></i>
+        <button v-if="!showReplyForm" @click="toggleReplyForm" class="reply-button">
+          <i class="fa-solid fa-reply"></i>
         </button>
+        <br>
+        <button @click="toggleReplies" class="toggle-replies-button" v-if="reply.children.length">
+            {{ showReplies ? 'Hide Replies' : 'Show Replies' }} ({{ reply.children.length }})
+          </button>
   
         <!-- Reply Form -->
         <div v-if="showReplyForm">
@@ -39,9 +48,9 @@
           <button @click="postReply" class="post-reply-button">Post Reply</button>
           <button @click="toggleReplyForm" class="cancel-reply-button">Cancel</button>
         </div>
-    
+  
         <!-- Nested Replies (if any) -->
-        <div v-if="reply.children.length" class="nested-replies">
+        <div v-if="reply.children.length && showReplies" class="nested-replies">
           <CommentReplyComponent
             v-for="(nestedReply, nIndex) in reply.children"
             :key="nIndex"
@@ -54,6 +63,7 @@
     </div>
   </template>
   
+  
   <script setup lang="ts">
   import { ref } from 'vue';
   import axios from 'axios';
@@ -61,6 +71,7 @@
   import type { Comment, PostList } from '@/types/type';
   import Notification from '@/components/Notification.vue';
   const showConfirmation = ref(false);
+  const showReplies = ref(true); 
   const handleConfirmation = (confirmed: boolean) => {
   if (confirmed && onConfirm.value) {
     onConfirm.value();
@@ -151,6 +162,10 @@ const confirmationMessage = ref('');
       }
     }
   };
+  // Toggle replies visibility
+const toggleReplies = () => {
+  showReplies.value = !showReplies.value;
+};
   </script>
   
 <style scoped>
@@ -269,6 +284,23 @@ const confirmationMessage = ref('');
 .reply-button:hover {
   background-color: #0056b3; /* Darker shade for reply button hover */
 }
+/*Toggle Replies */
+.toggle-replies-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s ease;
+    margin-top: 5px;
+  }
+  
+  .toggle-replies-button:hover {
+    background-color: #0056b3;
+  }
   
 </style>
   
