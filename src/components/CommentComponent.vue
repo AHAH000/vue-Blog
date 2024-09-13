@@ -1,117 +1,93 @@
 <template>
-  <section class="post-details-container">
-    <!-- Notification Component for Confirmation -->
-    <Notification
+        <Notification
       v-if="showConfirmation"
       :message="confirmationMessage"
       :hasConfirm="true"
       @confirm="handleConfirmation(true)"
       @cancel="handleConfirmation(false)"
     />
-
-    <div class="arrowBack" @click="goBack">
-      <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
-    </div>
-
-    <div v-if="post" class="post-details">
-      <div class="post-header">
-        <h1 v-if="!isEditing" class="post-title">{{ post.title }}</h1>
-
-        <!-- Likes Section -->
-        <div class="likes-section" v-if="!isEditing">
-          <button
-            @click="toggleLike"
-            :class="{ 'liked': post.liked_by_user }"
-            class="like-btn"
-          >
-            <i class="fa-solid fa-heart" aria-hidden="true"></i>
-          </button>
-          <button @click="showLikedUsersPopup = true" class="likes-count-btn">
-            {{ post.likes_count }} Likes
-          </button>
-          <LikedUsersPopup
-            :show="showLikedUsersPopup"
-            :users="post.likes"
-            @close="showLikedUsersPopup = false"
-          />
+    <div class="comments">
+      <!-- Add New Comment -->
+      <div v-if="isAuthenticated" class="comment-form">
+        <textarea v-model="newComment" class="new-comment" placeholder="Add a comment"></textarea>
+        <button @click="addComment" class="comment-button">Add Comment</button>
+      </div>
+  
+      <h3>Comments</h3>
+  
+      <!-- Display Comments -->
+      <div v-for="(comment, index) in post?.comments.slice().reverse()" :key="index" class="comment">
+        
+        <!-- Edit Comment Form -->
+        <div v-if="commentBeingEdited === comment.id">
+          <input v-model="editCommentContent" type="text" class="edit-comment-input" />
+          <button @click="saveCommentEdit(comment.id)" class="save-button">Save</button>
+          <button @click="cancelCommentEdit" class="cancel-button">Cancel</button>
         </div>
-      </div>
-
-      <div class="post-image" v-if="post.image && !isEditing">
-        <img :src="post.image" alt="Post Image" />
-      </div>
-
-      <div v-if="isEditing" class="edit-form">
-        <input v-model="post.title" type="text" class="edit-title" />
-        <textarea v-model="post.content" class="edit-content"></textarea>
-
-        <div class="image-upload">
-          <label for="imageUpload">Upload New Image:</label>
-          <input type="file" id="imageUpload" @change="onFileChange" />
-          <div v-if="imagePreview" class="image-preview">
-            <img :src="imagePreview" alt="Image Preview" />
-            <button @click="removeImage" class="remove-image-button">Remove Image</button>
+  
+        <!-- Comment Content -->
+        <div v-else>
+          <p class="comment-content">{{ comment.content }}</p>
+          <small class="comment-author">{{ comment.user.name }}</small>
+          <small class="comment-date">{{ comment.created_at_readable }}</small>
+  
+          <!-- Actions for comment owner -->
+          <div v-if="isCommentOwner(comment.user.id)" class="comment-actions">
+            <button @click="editComment(comment.id, comment.content)" class="edit-button">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button @click="deleteComment(comment.id)" class="delete-button">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+  
+          <!-- Reply Button -->
+          <div v-if="isAuthenticated">
+            <button @click="toggleReplyForm(comment.id)" class="reply-button">
+              <i class="fa-solid fa-reply"></i>
+            </button>
+          </div>
+  
+          <!-- Reply Form -->
+          <div v-if="isReplyingToComment === comment.id" class="reply-form">
+            <textarea v-model="replyContent" class="new-reply" placeholder="Reply to this comment"></textarea>
+            <button @click="replyToComment(comment.id)" class="reply-button">Submit Reply</button>
+            <button @click="isReplyingToComment = null" class="cancel-button">Cancel</button>
+          </div>
+  
+          <!-- Display Replies -->
+          <div v-if="comment.children.length" class="replies">
+            <CommentReplyComponent
+              v-for="(reply, rIndex) in comment.children"
+              :key="rIndex"
+              :reply="reply"
+              :post="post"
+              :fetchPostDetails="fetchPostDetails"
+            />
           </div>
         </div>
-
-        <button @click="editPost" class="save-button">Save</button>
-        <button @click="isEditing = false" class="cancel-button">Cancel</button>
-      </div>
-
-      <div v-else>
-        <div class="post-content">{{ post.content }}</div>
-        <div class="post-meta">
-          <span class="author">Author: {{ post.user.name }}</span>
-          <span class="date">Date: {{ new Date(post.created_at).toLocaleDateString() }}</span>
-        </div>
-
-        <div v-if="isPostOwner" class="post-actions">
-          <button @click="isEditing = true" class="edit-post-button">
-            <i class="fa-solid fa-pen"></i>
-          </button>
-          <button @click="deletePost" class="delete-post-button">
-            <i class="fa-solid fa-trash"></i>
-          </button>
-        </div>
-        <CommentComponent 
-        v-if="post" 
-        :comments="post.comments"
-        @addComment="addComment"
-        @editComment="editComment"
-        @deleteComment="deleteComment"
-        @replyToComment="replyToComment"
-      />
-
-        
       </div>
     </div>
-  </section>
-</template>
-
-<script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import axios from 'axios';
-import { isAuthenticated, user } from '@/auth';
-import type { PostList } from '@/types/type';
-import Notification from '@/components/Notification.vue';
-import LikedUsersPopup from '@/components/LikedUsersPopup.vue'; // Import the new component
-import CommentComponent from '@/components/CommentComponent.vue';
-const route = useRoute();
-const router = useRouter();
-const VITE_API_URL = 'https://interns-blog.nafistech.com/api';
-const post = ref<PostList | null>(null);
-
-const isEditing = ref(false);
-const newComment = ref('');
-const showNotification = ref(false);
-const notificationMessage = ref('');
-const showConfirmation = ref(false);
+  </template>
+  
+  <script setup lang="ts">
+  import { ref, onMounted } from 'vue';
+  import axios from 'axios';
+  import { useRoute } from 'vue-router';
+  import { isAuthenticated, user } from '@/auth';
+  import type { PostList } from '@/types/type';
+  import CommentReplyComponent from './CommentReplyComponent.vue'
+  import Notification from './Notification.vue';
+  const showConfirmation = ref(false);
 const confirmationMessage = ref('');
-const replyContent = ref('');
-const editReplyContent = ref('');
-const replyBeingEdited = ref<number | null>(null);
-const isReplyingToComment = ref<number | null>(null);
+  const route = useRoute();
+  const post = ref<PostList | null>(null);
+  const newComment = ref('');
+  const replyContent = ref('');
+  const editCommentContent = ref('');
+  const isReplyingToComment = ref<number | null>(null);
+  const commentBeingEdited = ref<number | null>(null);
+  const VITE_API_URL = 'https://interns-blog.nafistech.com/api';
 const handleConfirmation = (confirmed: boolean) => {
   if (confirmed && onConfirm.value) {
     onConfirm.value();
@@ -124,142 +100,82 @@ const showConfirmDialog = (message: string, onConfirmCallback: () => void) => {
   showConfirmation.value = true;
   onConfirm.value = onConfirmCallback;
 };
-const commentBeingEdited = ref<number | null>(null);
-const editCommentContent = ref('');
 
-const imageFile = ref<File | null>(null);
-const imagePreview = ref<string | null>(null);
-
-const fetchPostDetails = async () => {
-  try {
-    const response = await axios.get(`${VITE_API_URL}/posts/${route.params.slug}`);
-    post.value = response.data.data;
-  } catch (error) {
-    console.error('Error fetching post details:', error);
-  }
-};
-
-const toggleLike = async () => {
-  if (post.value) {
+  // Fetch post details
+  const fetchPostDetails = async () => {
     try {
-      await axios.post(`${VITE_API_URL}/posts/like/${post.value.slug}`);
-      if (post.value.liked_by_user) {
-        post.value.liked_by_user = false;
-        post.value.likes_count -= 1;
-      } else {
-        post.value.liked_by_user = true;
-        post.value.likes_count += 1;
+      const response = await axios.get(`${VITE_API_URL}/posts/${route.params.slug}`);
+      post.value = response.data.data;
+    } catch (error) {
+      console.error('Error fetching post details:', error);
+    }
+  };
+  
+  // Add new comment
+  const addComment = async () => {
+    if (post.value && newComment.value.trim()) {
+      try {
+        await axios.post(`${VITE_API_URL}/posts/${post.value.slug}/comments`, { content: newComment.value });
+        newComment.value = '';
+        fetchPostDetails();
+      } catch (error) {
+        console.error('Error adding comment:', error);
       }
-      await fetchPostDetails();
-    } catch (error) {
-      console.error('Error toggling like:', error);
     }
-  }
-};
-
-const addComment = async () => {
-  if (post.value && newComment.value.trim()) {
-    try {
-      await axios.post(`${VITE_API_URL}/posts/${post.value.slug}/comments`, {
-        content: newComment.value
-      });
-      newComment.value = '';
-      fetchPostDetails();
-    } catch (error) {
-      console.error('Error adding comment:', error);
-    }
-  }
-};
-const replyToComment = async (parentId: number) => {
-  if (post.value && replyContent.value.trim()) {
-    try {
-      await axios.post(`${VITE_API_URL}/posts/${post.value.slug}/comments`, {
-        content: replyContent.value,
-        parent_id: parentId
-      });
-      replyContent.value = '';
-      isReplyingToComment.value = null; // Hide the reply form after submitting
-      fetchPostDetails(); // Reload the post details to get the updated replies
-    } catch (error) {
-      console.error('Error adding reply:', error);
-    }
-  }
-};
-const toggleReplyForm = (commentId: number) => {
+  };
+  const toggleReplyForm = (commentId: number) => {
   isReplyingToComment.value = isReplyingToComment.value === commentId ? null : commentId;
 };
-const editReply = (replyId: number, currentContent: string) => {
-  replyBeingEdited.value = replyId;
-  editReplyContent.value = currentContent;
-};
-
-const saveReplyEdit = async (replyId: number) => {
-  try {
-    const postSlug = post.value?.slug;
-    if (!postSlug) throw new Error('Post slug is not available');
-    await axios.patch(`${VITE_API_URL}/posts/${postSlug}/comments/${replyId}`, {
-      content: editReplyContent.value
-    });
-    if (post.value) {
-      const comment = post.value.comments.find(comment => 
-        comment.children.some(reply => reply.id === replyId)
-      );
-      if (comment) {
-        const reply = comment.children.find(reply => reply.id === replyId);
-        if (reply) reply.content = editReplyContent.value;
+  // Reply to a comment
+  const replyToComment = async (parentId: number) => {
+    if (post.value && replyContent.value.trim()) {
+      try {
+        await axios.post(`${VITE_API_URL}/posts/${post.value.slug}/comments`, {
+          content: replyContent.value,
+          parent_id: parentId
+        });
+        replyContent.value = '';
+        isReplyingToComment.value = null; // Hide the reply form after submitting
+        fetchPostDetails(); // Reload post to get updated replies
+      } catch (error) {
+        console.error('Error adding reply:', error);
       }
     }
-    replyBeingEdited.value = null;
-    editReplyContent.value = '';
-  } catch (error) {
-    console.error('Error editing reply:', error);
-    alert('Failed to edit the reply. Please try again.');
-  }
-};
-
-const deleteReply = async (replyId: number) => {
-  showConfirmDialog('Are you sure you want to delete this reply?', async () => {
+  };
+  
+  // Edit comment
+  const editComment = (commentId: number, currentContent: string) => {
+    commentBeingEdited.value = commentId;
+    editCommentContent.value = currentContent;
+  };
+  
+  // Save edited comment
+  const saveCommentEdit = async (commentId: number) => {
     try {
       const postSlug = post.value?.slug;
       if (!postSlug) throw new Error('Post slug is not available');
-      await axios.delete(`${VITE_API_URL}/posts/${postSlug}/comments/${replyId}`);
-      fetchPostDetails();
+      await axios.patch(`${VITE_API_URL}/posts/${postSlug}/comments/${commentId}`, {
+        content: editCommentContent.value
+      });
+      if (post.value) {
+        const comment = post.value.comments.find(comment => comment.id === commentId);
+        if (comment) comment.content = editCommentContent.value;
+      }
+      commentBeingEdited.value = null;
+      editCommentContent.value = '';
     } catch (error) {
-      console.error('Error deleting reply:', error);
+      console.error('Error editing comment:', error);
     }
-  });
-};
-
-const editComment = (commentId: number, currentContent: string) => {
-  commentBeingEdited.value = commentId;
-  editCommentContent.value = currentContent;
-};
-
-const saveCommentEdit = async (commentId: number) => {
-  try {
-    const postSlug = post.value?.slug;
-    if (!postSlug) throw new Error('Post slug is not available');
-    await axios.patch(`${VITE_API_URL}/posts/${postSlug}/comments/${commentId}`, {
-      content: editCommentContent.value
-    });
-    if (post.value) {
-      const comment = post.value.comments.find(comment => comment.id === commentId);
-      if (comment) comment.content = editCommentContent.value;
-    }
+  };
+  
+  // Cancel comment edit
+  const cancelCommentEdit = () => {
     commentBeingEdited.value = null;
     editCommentContent.value = '';
-  } catch (error) {
-    console.error('Error editing comment:', error);
-    alert('Failed to edit the comment. Please try again.');
-  }
-};
-
-const cancelCommentEdit = () => {
-  commentBeingEdited.value = null;
-  editCommentContent.value = '';
-};
-
-const deleteComment = async (commentId: number) => {
+  };
+  
+  // Delete comment
+  const deleteComment = async (commentId: number) => {
   showConfirmDialog('Are you sure you want to delete this comment?', async () => {
     try {
       await axios.delete(`${VITE_API_URL}/posts/${post.value?.slug}/comments/${commentId}`);
@@ -270,82 +186,16 @@ const deleteComment = async (commentId: number) => {
     }
   });
 };
-
-const deletePost = async () => {
-  if (post.value) {
-    showConfirmDialog('Are you sure you want to delete this post?', async () => {
-      try {
-        await axios.delete(`${VITE_API_URL}/posts/${post.value?.slug}`);
-        router.push('/PostList');
-      } catch (error) {
-        console.error('Error deleting post:', error);
-      }
-    });
-  }
-};
-
-// Handle file input change and preview
-const onFileChange = (event: Event) => {
-  const file = (event.target as HTMLInputElement).files?.[0] || null;
-  if (file) {
-    imageFile.value = file;
-    imagePreview.value = URL.createObjectURL(file);
-  }
-};
-
-// Remove the selected image
-const removeImage = () => {
-  imageFile.value = null;
-  imagePreview.value = null;
-};
-
-// Edit post and upload new image
-const editPost = async () => {
-  if (post.value) {
-    try {
-      const formData = new FormData();
-      formData.append('title', post.value.title);
-      formData.append('content', post.value.content);
-      if (imageFile.value) {
-        formData.append('image', imageFile.value);
-      }
-      await axios.patch(`${VITE_API_URL}/posts/${post.value.slug}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      isEditing.value = false;
-      fetchPostDetails();
-    } catch (error) {
-      console.error('Error editing post:', error);
-    }
-  }
-};
-
-// Check if the current user is the post owner
-const isPostOwner = computed(() => {
-  return post.value && user.value && post.value.user.id === user.value.id;
-});
-
-const isCommentOwner = (commentUserId: number) => {
-  return user.value && commentUserId === user.value.id;
-};
-onMounted(() => {
-  fetchPostDetails();
-});
-
-// Navigate back to the previous page
-const goBack = () => {
-  router.back();
-};
-
-const showLikedUsersPopup = ref(false);
-
-</script>
-
   
-
-<style scoped>
+  // Check if user is the owner of the comment
+  const isCommentOwner = (commentUserId: number) => user.value && commentUserId === user.value.id;
+  
+  onMounted(() => {
+    fetchPostDetails();
+  });
+  </script>
+  
+  <style scoped>
 /* Container for the entire post details page */
 .post-details-container {
   margin-top: 50px;

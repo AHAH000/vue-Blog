@@ -74,5 +74,5 @@ export type Post = {
   content: string;
   user: { name: string };
   created_at: string;
-  comments: { content: string; user: { name: string }; id: number }[];
+  comments:Comment;
 };
