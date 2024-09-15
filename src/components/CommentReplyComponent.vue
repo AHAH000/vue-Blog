@@ -7,7 +7,6 @@
       @cancel="handleConfirmation(false)"
     />
     <div class="replies">
-      <!-- Toggle Button to Show/Hide Replies -->
       
   
       <!-- Reply Content -->
@@ -38,9 +37,13 @@
           <i class="fa-solid fa-reply"></i>
         </button>
         <br>
+              <!-- Toggle Button to Show/Hide Replies -->
+
         <button @click="toggleReplies" class="toggle-replies-button" v-if="reply.children.length">
-            {{ showReplies ? 'Hide Replies' : 'Show Replies' }} ({{ reply.children.length }})
+          replies  <i :class="showReplies ?  'fa-solid fa-arrow-up' : 'fa-solid fa-arrow-down'"></i>
+            ({{ reply.children.length }})
           </button>
+          
   
         <!-- Reply Form -->
         <div v-if="showReplyForm">
